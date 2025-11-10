@@ -103,10 +103,19 @@
       </div>
 
       <!-- Botão Fechar -->
-      <div class="mt-4">
+      <div class="mt-4 flex gap-3">
+        <button
+          v-if="teams.some(t => t.members.length > 0)"
+          @click="shareTeams"
+          class="flex-1 rounded-lg bg-blue-600 px-6 py-3 font-semibold
+            text-white transition-colors hover:bg-blue-700 flex items-center justify-center gap-2"
+        >
+          <Icon name="heroicons:share" class="h-5 w-5" />
+          Compartilhar
+        </button>
         <button
           @click="$emit('close')"
-          class="w-full rounded-lg bg-gray-600 px-6 py-3 font-semibold
+          class="flex-1 rounded-lg bg-gray-600 px-6 py-3 font-semibold
             text-white transition-colors hover:bg-gray-700"
         >
           Fechar
@@ -126,4 +135,60 @@ defineEmits<{
 const props = defineProps<{
   teams: Team[]
 }>()
+
+const shareTeams = async () => {
+  const teamsWithMembers = props.teams.filter(t => t.members.length > 0)
+  
+  if (teamsWithMembers.length === 0) return
+
+  // Criar texto formatado com as equipes
+  let shareText = '🏆 Equipes Sorteadas - ScoreBoard\n\n'
+  
+  teamsWithMembers.forEach((team, index) => {
+    const totalWeight = team.members.reduce((sum, m) => sum + m.weight, 0)
+    
+    shareText += `${team.name}\n`
+    shareText += `👥 ${team.members.length} jogador${team.members.length > 1 ? 'es' : ''} | ⚖️ Peso: ${totalWeight.toFixed(1)}\n`
+    
+    team.members.forEach(member => {
+      const stars = '⭐'.repeat(member.weight)
+      shareText += `  • ${member.name} ${stars}\n`
+    })
+    
+    if (team.score > 0) {
+      shareText += `🏆 Pontos: ${team.score}\n`
+    }
+    
+    shareText += '\n'
+  })
+
+  // Usar Web Share API se disponível
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'Equipes Sorteadas - ScoreBoard',
+        text: shareText,
+      })
+    } catch (error) {
+      // Usuário cancelou o compartilhamento ou erro
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.error('Erro ao compartilhar:', error)
+        fallbackShare(shareText)
+      }
+    }
+  } else {
+    // Fallback: copiar para clipboard
+    fallbackShare(shareText)
+  }
+}
+
+const fallbackShare = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    alert('Texto copiado para a área de transferência!')
+  } catch (error) {
+    console.error('Erro ao copiar:', error)
+    alert('Não foi possível compartilhar. Tente novamente.')
+  }
+}
 </script>
