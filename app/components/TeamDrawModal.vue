@@ -284,14 +284,21 @@ const showPreview = ref(false)
 
 const calculatedTeams = computed(() => {
   if (playersPerTeam.value < 1) return 0
-  return Math.floor(store.enabledPlayers.length / playersPerTeam.value)
+  
+  let numberOfTeams = Math.ceil(store.enabledPlayers.length / playersPerTeam.value)
+  const remainder = store.enabledPlayers.length % playersPerTeam.value
+  
+  // Se sobrar apenas 1 jogador, mesclar com o penúltimo time
+  if (remainder === 1 && numberOfTeams > 1) {
+    numberOfTeams = numberOfTeams - 1
+  }
+  
+  return numberOfTeams
 })
 
 const handleDraw = () => {
   try {
-    const numberOfTeams = calculatedTeams.value
-
-    if (numberOfTeams < 2) {
+    if (calculatedTeams.value < 2) {
       alert(
         'É necessário ter jogadores suficientes para formar pelo menos 2 equipes.',
       )
@@ -301,9 +308,9 @@ const handleDraw = () => {
     let drawnTeams: Team[]
 
     if (drawType.value === 'balanced') {
-      drawnTeams = store.drawTeams(numberOfTeams)
+      drawnTeams = store.drawTeams(playersPerTeam.value)
     } else {
-      drawnTeams = store.drawRandomTeams(numberOfTeams)
+      drawnTeams = store.drawRandomTeams(playersPerTeam.value)
     }
 
     // Guardar preview das equipes (cópia profunda)

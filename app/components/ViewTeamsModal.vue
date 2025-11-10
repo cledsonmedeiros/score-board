@@ -68,7 +68,7 @@
           </div>
           <!-- Info da Equipe -->
           <div
-            class="mt-auto flex items-center gap-3 border-t border-gray-200
+            class="mt-auto flex justify-between items-center gap-3 border-t border-gray-200
               pt-2 text-xs text-gray-600"
           >
             <span
@@ -81,9 +81,9 @@
                 team.members.reduce((sum, m) => sum + m.weight, 0).toFixed(1)
               }}</span
             >
-            <span class="ml-auto">
+            <!-- <span class="ml-auto">
               🏆 {{ team.score }} {{ team.score === 1 ? 'ponto' : 'pontos' }}
-            </span>
+            </span> -->
           </div>
         </div>
       </div>
@@ -145,19 +145,19 @@ const shareTeams = async () => {
   let shareText = '🏆 Equipes Sorteadas - ScoreBoard\n\n'
   
   teamsWithMembers.forEach((team, index) => {
-    const totalWeight = team.members.reduce((sum, m) => sum + m.weight, 0)
+    // const totalWeight = team.members.reduce((sum, m) => sum + m.weight, 0)
     
-    shareText += `${team.name}\n`
-    shareText += `👥 ${team.members.length} jogador${team.members.length > 1 ? 'es' : ''} | ⚖️ Peso: ${totalWeight.toFixed(1)}\n`
+    shareText += `${team.name} · ${team.members.length} jogador${team.members.length > 1 ? 'es' : ''}\n`
     
     team.members.forEach(member => {
-      const stars = '⭐'.repeat(member.weight)
-      shareText += `  • ${member.name} ${stars}\n`
+      // const stars = '⭐'.repeat(member.weight)
+      // shareText += `  • ${member.name} ${stars}\n`
+      shareText += `• ${member.name}\n`
     })
     
-    if (team.score > 0) {
-      shareText += `🏆 Pontos: ${team.score}\n`
-    }
+    // if (team.score > 0) {
+    //   shareText += `🏆 Pontos: ${team.score}\n`
+    // }
     
     shareText += '\n'
   })

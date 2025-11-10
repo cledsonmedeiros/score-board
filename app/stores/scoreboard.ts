@@ -129,11 +129,26 @@ export const useScoreboardStore = defineStore('scoreboard', {
     },
 
     // Teams
-    drawTeams(numberOfTeams: number = 2) {
+    drawTeams(playersPerTeam: number) {
       const available = this.enabledPlayers
       if (available.length === 0) {
         throw new Error('Nenhum jogador habilitado para sorteio')
       }
+
+      if (playersPerTeam < 1) {
+        throw new Error('Número de jogadores por time deve ser maior que 0')
+      }
+
+      // Calcular número de times
+      let numberOfTeams = Math.ceil(available.length / playersPerTeam)
+      const remainder = available.length % playersPerTeam
+      
+      // Se sobrar apenas 1 jogador, mesclar com o penúltimo time
+      if (remainder === 1 && numberOfTeams > 1) {
+        numberOfTeams = numberOfTeams - 1
+      }
+      
+      const completeTeams = Math.floor(available.length / playersPerTeam)
 
       this.teams = Array.from({ length: numberOfTeams }, (_, i) => ({
         name: `EQUIPE ${i + 1}`,
@@ -141,16 +156,40 @@ export const useScoreboardStore = defineStore('scoreboard', {
         members: [],
       }))
 
+      // Embaralhar jogadores primeiro
       const shuffledPlayers = [...available].sort(() => Math.random() - 0.5)
+      // Ordenar por peso (maior para menor) para balancear
       const sortedPlayers = shuffledPlayers.sort((a, b) => b.weight - a.weight)
 
-      sortedPlayers.forEach((player) => {
-        const teamWeights = this.teams.map((team) =>
-          team.members.reduce((sum, member) => sum + member.weight, 0)
-        )
-        const minWeightIndex = teamWeights.indexOf(Math.min(...teamWeights))
-        const team = this.teams[minWeightIndex]
+      // Distribuir jogadores de forma balanceada pelo peso
+      sortedPlayers.forEach((player, index) => {
+        // Calcular qual time deve receber o jogador
+        // Primeiros (completeTeams * playersPerTeam) jogadores são distribuídos igualmente
+        // O resto vai para o último time
+        let targetTeamIndex: number
+        
+        if (index < completeTeams * playersPerTeam) {
+          // Distribuir balanceado entre times completos
+          // Encontrar o time com menor peso total que ainda não está completo
+          let minWeight = Infinity
+          targetTeamIndex = 0
 
+          for (let i = 0; i < completeTeams; i++) {
+            const team = this.teams[i]
+            if (team && team.members.length < playersPerTeam) {
+              const teamWeight = team.members.reduce((sum, m) => sum + m.weight, 0)
+              if (teamWeight < minWeight) {
+                minWeight = teamWeight
+                targetTeamIndex = i
+              }
+            }
+          }
+        } else {
+          // Resto vai para o último time
+          targetTeamIndex = numberOfTeams - 1
+        }
+
+        const team = this.teams[targetTeamIndex]
         if (team) {
           team.members.push({ ...player })
         }
@@ -160,11 +199,26 @@ export const useScoreboardStore = defineStore('scoreboard', {
       return this.teams
     },
 
-    drawRandomTeams(numberOfTeams: number = 2) {
+    drawRandomTeams(playersPerTeam: number) {
       const available = this.enabledPlayers
       if (available.length === 0) {
         throw new Error('Nenhum jogador habilitado para sorteio')
       }
+
+      if (playersPerTeam < 1) {
+        throw new Error('Número de jogadores por time deve ser maior que 0')
+      }
+
+      // Calcular número de times
+      let numberOfTeams = Math.ceil(available.length / playersPerTeam)
+      const remainder = available.length % playersPerTeam
+      
+      // Se sobrar apenas 1 jogador, mesclar com o penúltimo time
+      if (remainder === 1 && numberOfTeams > 1) {
+        numberOfTeams = numberOfTeams - 1
+      }
+      
+      const completeTeams = Math.floor(available.length / playersPerTeam)
 
       this.teams = Array.from({ length: numberOfTeams }, (_, i) => ({
         name: `EQUIPE ${i + 1}`,
@@ -172,12 +226,24 @@ export const useScoreboardStore = defineStore('scoreboard', {
         members: [],
       }))
 
+      // Embaralhar todos os jogadores
       const shuffled = [...available].sort(() => Math.random() - 0.5)
 
+      // Distribuir jogadores
       shuffled.forEach((player, index) => {
-        const teamIndex = index % numberOfTeams
+        // Primeiros jogadores são distribuídos nos times completos (playersPerTeam cada)
+        // Resto vai para o último time
+        let teamIndex: number
+        
+        if (index < completeTeams * playersPerTeam) {
+          // Distribui nos times completos
+          teamIndex = Math.floor(index / playersPerTeam)
+        } else {
+          // Resto vai para o último time
+          teamIndex = numberOfTeams - 1
+        }
+        
         const team = this.teams[teamIndex]
-
         if (team) {
           team.members.push({ ...player })
         }
