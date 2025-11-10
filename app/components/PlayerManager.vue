@@ -2,17 +2,6 @@
   <div class="flex h-full flex-col items-center bg-gray-50 p-3 md:p-6">
     <!-- Container centralizado -->
     <div class="w-full max-w-5xl space-y-6">
-      <!-- Cabeçalho -->
-      <div>
-        <h1 class="text-2xl font-bold text-gray-800 md:text-3xl">
-          Gerenciar Jogadores
-        </h1>
-        <p class="mt-2 text-xs text-gray-600 md:text-sm">
-          Adicione jogadores, defina pesos e gerencie a lista para sorteio de
-          equipes
-        </p>
-      </div>
-
       <!-- Formulário de Adição -->
       <div class="rounded-lg bg-white p-4 shadow">
         <h2 class="mb-4 text-lg font-semibold text-gray-800">
@@ -78,7 +67,10 @@
           </button>
         </div>
 
-        <div class="max-h-[calc(100vh-500px)] overflow-x-hidden overflow-y-auto pb-20 md:pb-24">
+        <div
+          class="max-h-[calc(100vh-500px)] overflow-x-hidden overflow-y-auto
+            pb-20 md:pb-24"
+        >
           <div v-if="filteredPlayers.length === 0" class="p-8 text-center">
             <p class="text-gray-500">
               {{
@@ -103,8 +95,8 @@
             <button
               @click="store.togglePlayerEnabled(player.id)"
               :class="[
-                `flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full
-                transition-colors`,
+                `flex h-10 w-10 flex-shrink-0 items-center justify-center
+                rounded-full transition-colors`,
                 player.enabled
                   ? 'bg-green-100 text-green-600 hover:bg-green-200'
                   : 'bg-gray-200 text-gray-400 hover:bg-gray-300',
@@ -114,9 +106,7 @@
               "
             >
               <Icon
-                :name="
-                  player.enabled ? 'heroicons:check' : 'heroicons:x-mark'
-                "
+                :name="player.enabled ? 'heroicons:check' : 'heroicons:x-mark'"
                 class="h-6 w-6"
               />
             </button>
@@ -137,7 +127,7 @@
               <div v-else class="flex items-center gap-2">
                 <span
                   :class="[
-                    'font-medium text-sm',
+                    'text-sm font-medium',
                     player.enabled ? 'text-gray-800' : 'text-gray-500',
                   ]"
                   :title="player.name"
@@ -225,7 +215,7 @@ const handleRemovePlayer = (playerId: string) => {
 const startEdit = (player: Player) => {
   editingPlayerId.value = player.id
   editingPlayerName.value = player.name
-  
+
   // Mover cursor para o fim do texto
   nextTick(() => {
     if (editInput) {

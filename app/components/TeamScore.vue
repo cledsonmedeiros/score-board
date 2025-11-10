@@ -33,12 +33,15 @@
         <div
           v-for="member in members"
           :key="member.id"
-          class="rounded-full bg-white/20 px-3 py-1 backdrop-blur-sm
-            md:px-4 md:py-1.5"
+          class="rounded-full bg-white/20 px-3 py-1 backdrop-blur-sm md:px-4
+            md:py-1.5"
         >
-          <span class="max-w-[120px] truncate text-xs font-semibold text-white md:max-w-[180px] md:text-sm" :title="member.name">{{
-            member.name
-          }}</span>
+          <span
+            class="max-w-[120px] truncate text-xs font-semibold text-white
+              md:max-w-[180px] md:text-sm"
+            :title="member.name"
+            >{{ member.name }}</span
+          >
         </div>
       </div>
     </div>

@@ -14,9 +14,7 @@
       ]"
     >
       <Icon
-        :name="
-          star <= modelValue ? 'heroicons:star-solid' : 'heroicons:star'
-        "
+        :name="star <= modelValue ? 'heroicons:star-solid' : 'heroicons:star'"
         class="h-full w-full transition-colors"
       />
     </button>

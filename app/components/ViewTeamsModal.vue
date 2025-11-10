@@ -11,7 +11,7 @@
       <!-- Cabeçalho -->
       <div class="mb-4 flex items-center justify-between md:mb-6">
         <h2 class="text-xl font-bold text-gray-800 md:text-2xl">
-           Equipes Atuais
+          Equipes Atuais
         </h2>
         <button
           @click="$emit('close')"
@@ -24,7 +24,10 @@
       </div>
 
       <!-- Lista de Equipes -->
-      <div v-if="teams.some(t => t.members.length > 0)" class="mb-4 grid gap-3 md:grid-cols-2">
+      <div
+        v-if="teams.some((t) => t.members.length > 0)"
+        class="mb-4 grid gap-3 md:grid-cols-2"
+      >
         <div
           v-for="(team, index) in teams"
           :key="index"
@@ -58,7 +61,7 @@
           >
             {{ team.name }}
           </h3>
-          <div class="mb-2 grid flex-1 grid-cols-2 gap-2 content-start">
+          <div class="mb-2 grid flex-1 grid-cols-2 content-start gap-2">
             <PlayerBadge
               v-for="member in team.members"
               :key="member.id"
@@ -68,8 +71,8 @@
           </div>
           <!-- Info da Equipe -->
           <div
-            class="mt-auto flex justify-between items-center gap-3 border-t border-gray-200
-              pt-2 text-xs text-gray-600"
+            class="mt-auto flex items-center justify-between gap-3 border-t
+              border-gray-200 pt-2 text-xs text-gray-600"
           >
             <span
               >👥 {{ team.members.length }}
@@ -89,12 +92,12 @@
       </div>
 
       <!-- Aviso se não houver equipes -->
-      <div
-        v-else
-        class="rounded-lg bg-yellow-50 p-8 text-center"
-      >
-        <Icon name="heroicons:user-group" class="mx-auto mb-3 h-12 w-12 text-yellow-600" />
-        <p class="text-lg font-semibold text-yellow-800 mb-2">
+      <div v-else class="rounded-lg bg-yellow-50 p-8 text-center">
+        <Icon
+          name="heroicons:user-group"
+          class="mx-auto mb-3 h-12 w-12 text-yellow-600"
+        />
+        <p class="mb-2 text-lg font-semibold text-yellow-800">
           Nenhuma equipe sorteada ainda
         </p>
         <p class="text-sm text-yellow-700">
@@ -105,10 +108,11 @@
       <!-- Botão Fechar -->
       <div class="mt-4 flex gap-3">
         <button
-          v-if="teams.some(t => t.members.length > 0)"
+          v-if="teams.some((t) => t.members.length > 0)"
           @click="shareTeams"
-          class="flex-1 rounded-lg bg-blue-600 px-6 py-3 font-semibold
-            text-white transition-colors hover:bg-blue-700 flex items-center justify-center gap-2"
+          class="flex flex-1 items-center justify-center gap-2 rounded-lg
+            bg-blue-600 px-6 py-3 font-semibold text-white transition-colors
+            hover:bg-blue-700"
         >
           <Icon name="heroicons:share" class="h-5 w-5" />
           Compartilhar
@@ -137,28 +141,28 @@ const props = defineProps<{
 }>()
 
 const shareTeams = async () => {
-  const teamsWithMembers = props.teams.filter(t => t.members.length > 0)
-  
+  const teamsWithMembers = props.teams.filter((t) => t.members.length > 0)
+
   if (teamsWithMembers.length === 0) return
 
   // Criar texto formatado com as equipes
   let shareText = '🏆 Equipes Sorteadas - ScoreBoard\n\n'
-  
+
   teamsWithMembers.forEach((team, index) => {
     // const totalWeight = team.members.reduce((sum, m) => sum + m.weight, 0)
-    
+
     shareText += `${team.name} · ${team.members.length} jogador${team.members.length > 1 ? 'es' : ''}\n`
-    
-    team.members.forEach(member => {
+
+    team.members.forEach((member) => {
       // const stars = '⭐'.repeat(member.weight)
       // shareText += `  • ${member.name} ${stars}\n`
       shareText += `• ${member.name}\n`
     })
-    
+
     // if (team.score > 0) {
     //   shareText += `🏆 Pontos: ${team.score}\n`
     // }
-    
+
     shareText += '\n'
   })
 

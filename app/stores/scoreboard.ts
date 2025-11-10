@@ -100,7 +100,10 @@ export const useScoreboardStore = defineStore('scoreboard', {
       return false
     },
 
-    updatePlayer(playerId: string, updates: Partial<Omit<Player, 'id' | 'createdAt'>>) {
+    updatePlayer(
+      playerId: string,
+      updates: Partial<Omit<Player, 'id' | 'createdAt'>>,
+    ) {
       const player = this.players.find((p) => p.id === playerId)
       if (player) {
         if (updates.name !== undefined) {
@@ -142,12 +145,12 @@ export const useScoreboardStore = defineStore('scoreboard', {
       // Calcular número de times
       let numberOfTeams = Math.ceil(available.length / playersPerTeam)
       const remainder = available.length % playersPerTeam
-      
+
       // Se sobrar apenas 1 jogador, mesclar com o penúltimo time
       if (remainder === 1 && numberOfTeams > 1) {
         numberOfTeams = numberOfTeams - 1
       }
-      
+
       const completeTeams = Math.floor(available.length / playersPerTeam)
 
       this.teams = Array.from({ length: numberOfTeams }, (_, i) => ({
@@ -167,7 +170,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
         // Primeiros (completeTeams * playersPerTeam) jogadores são distribuídos igualmente
         // O resto vai para o último time
         let targetTeamIndex: number
-        
+
         if (index < completeTeams * playersPerTeam) {
           // Distribuir balanceado entre times completos
           // Encontrar o time com menor peso total que ainda não está completo
@@ -177,7 +180,10 @@ export const useScoreboardStore = defineStore('scoreboard', {
           for (let i = 0; i < completeTeams; i++) {
             const team = this.teams[i]
             if (team && team.members.length < playersPerTeam) {
-              const teamWeight = team.members.reduce((sum, m) => sum + m.weight, 0)
+              const teamWeight = team.members.reduce(
+                (sum, m) => sum + m.weight,
+                0,
+              )
               if (teamWeight < minWeight) {
                 minWeight = teamWeight
                 targetTeamIndex = i
@@ -212,12 +218,12 @@ export const useScoreboardStore = defineStore('scoreboard', {
       // Calcular número de times
       let numberOfTeams = Math.ceil(available.length / playersPerTeam)
       const remainder = available.length % playersPerTeam
-      
+
       // Se sobrar apenas 1 jogador, mesclar com o penúltimo time
       if (remainder === 1 && numberOfTeams > 1) {
         numberOfTeams = numberOfTeams - 1
       }
-      
+
       const completeTeams = Math.floor(available.length / playersPerTeam)
 
       this.teams = Array.from({ length: numberOfTeams }, (_, i) => ({
@@ -234,7 +240,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
         // Primeiros jogadores são distribuídos nos times completos (playersPerTeam cada)
         // Resto vai para o último time
         let teamIndex: number
-        
+
         if (index < completeTeams * playersPerTeam) {
           // Distribui nos times completos
           teamIndex = Math.floor(index / playersPerTeam)
@@ -242,7 +248,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
           // Resto vai para o último time
           teamIndex = numberOfTeams - 1
         }
-        
+
         const team = this.teams[teamIndex]
         if (team) {
           team.members.push({ ...player })

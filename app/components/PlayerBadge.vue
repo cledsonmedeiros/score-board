@@ -17,9 +17,11 @@
     class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1
       text-xs md:px-3 md:text-sm"
   >
-    <span class="max-w-[120px] truncate font-medium text-gray-800" :title="player.name">{{
-      player.name
-    }}</span>
+    <span
+      class="max-w-[120px] truncate font-medium text-gray-800"
+      :title="player.name"
+      >{{ player.name }}</span
+    >
     <StarRating :model-value="player.weight" :disabled="true" size="sm" />
   </span>
 </template>

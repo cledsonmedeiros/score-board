@@ -42,8 +42,8 @@
           <select
             v-model="localRedTeamIndex"
             class="w-full rounded-lg border border-gray-300 px-4 py-2
-              focus:border-red-500 focus:outline-none focus:ring-2
-              focus:ring-red-500"
+              focus:border-red-500 focus:ring-2 focus:ring-red-500
+              focus:outline-none"
           >
             <option
               v-for="(team, index) in availableTeams"
@@ -55,7 +55,7 @@
               {{ team.members.length === 1 ? 'jogador' : 'jogadores' }})
             </option>
           </select>
-          
+
           <!-- Membros da equipe vermelha -->
           <div
             v-if="availableTeams[localRedTeamIndex]"
@@ -80,8 +80,8 @@
           <select
             v-model="localBlueTeamIndex"
             class="w-full rounded-lg border border-gray-300 px-4 py-2
-              focus:border-blue-500 focus:outline-none focus:ring-2
-              focus:ring-blue-500"
+              focus:border-blue-500 focus:ring-2 focus:ring-blue-500
+              focus:outline-none"
           >
             <option
               v-for="(team, index) in availableTeams"
@@ -93,7 +93,7 @@
               {{ team.members.length === 1 ? 'jogador' : 'jogadores' }})
             </option>
           </select>
-          
+
           <!-- Membros da equipe azul -->
           <div
             v-if="availableTeams[localBlueTeamIndex]"
@@ -148,8 +148,8 @@ const emit = defineEmits<{
   confirm: [{ redTeamIndex: number; blueTeamIndex: number }]
 }>()
 
-const availableTeams = computed(() => 
-  props.teams.filter(t => t.members.length > 0)
+const availableTeams = computed(() =>
+  props.teams.filter((t) => t.members.length > 0),
 )
 
 const localRedTeamIndex = ref(props.redTeamIndex)
