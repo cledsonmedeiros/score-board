@@ -51,4 +51,57 @@ const handleTeamsDrawn = () => {
   // Redirecionar para a página do placar após sortear
   navigateTo('/')
 }
+
+// SEO
+useHead({
+  title: 'Gerenciamento de Jogadores - Score Board',
+  meta: [
+    {
+      name: 'description',
+      content: 'Gerencie jogadores, ajuste pesos por estrelas e sorteie times balanceados ou aleatórios. Sistema completo de gerenciamento de equipes.',
+    },
+    {
+      name: 'keywords',
+      content: 'gerenciamento, jogadores, times, sorteio, equipes, balanceamento, estrelas, peso',
+    },
+    // Open Graph
+    {
+      property: 'og:title',
+      content: 'Gerenciamento de Jogadores - Score Board',
+    },
+    {
+      property: 'og:description',
+      content: 'Gerencie jogadores, ajuste pesos por estrelas e sorteie times balanceados ou aleatórios. Sistema completo de gerenciamento de equipes.',
+    },
+    {
+      property: 'og:type',
+      content: 'website',
+    },
+    {
+      property: 'og:image',
+      content: '/icon-512x512.png',
+    },
+    {
+      property: 'og:image:alt',
+      content: 'Score Board - Gerenciamento de Jogadores',
+    },
+    // Twitter Card
+    {
+      name: 'twitter:card',
+      content: 'summary_large_image',
+    },
+    {
+      name: 'twitter:title',
+      content: 'Gerenciamento de Jogadores - Score Board',
+    },
+    {
+      name: 'twitter:description',
+      content: 'Gerencie jogadores, ajuste pesos por estrelas e sorteie times balanceados ou aleatórios. Sistema completo de gerenciamento de equipes.',
+    },
+    {
+      name: 'twitter:image',
+      content: '/icon-512x512.png',
+    },
+  ],
+})
 </script>

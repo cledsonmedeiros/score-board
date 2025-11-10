@@ -1,0 +1,26 @@
+{
+  "name": "Score Board - Sistema de Placar e Gerenciamento de Times",
+  "short_name": "Score Board",
+  "description": "Sistema completo de placar digital e gerenciamento de times",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#EF4444",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["sports", "utilities"],
+  "lang": "pt-BR"
+}

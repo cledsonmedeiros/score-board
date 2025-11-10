@@ -1,2 +1,10 @@
-User-Agent: *
-Disallow:
+# Score Board - Robots.txt
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Crawl-delay for all bots
+Crawl-delay: 1
+
+# Sitemap
+Sitemap: https://scoreboard.acoes.cc/sitemap.xml

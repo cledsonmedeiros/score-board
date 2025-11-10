@@ -140,4 +140,57 @@ const handleTeamSelection = ({
   blueTeamIndex.value = blue
   store.resetScores()
 }
+
+// SEO
+useHead({
+  title: 'Placar de Times - Score Board',
+  meta: [
+    {
+      name: 'description',
+      content: 'Acompanhe a pontuação dos times em tempo real. Sistema de placar digital para gerenciar e visualizar scores de equipes esportivas.',
+    },
+    {
+      name: 'keywords',
+      content: 'placar, score, times, equipes, pontuação, esportes, scoreboard, placar digital',
+    },
+    // Open Graph
+    {
+      property: 'og:title',
+      content: 'Placar de Times - Score Board',
+    },
+    {
+      property: 'og:description',
+      content: 'Acompanhe a pontuação dos times em tempo real. Sistema de placar digital para gerenciar e visualizar scores de equipes esportivas.',
+    },
+    {
+      property: 'og:type',
+      content: 'website',
+    },
+    {
+      property: 'og:image',
+      content: '/icon-512x512.png',
+    },
+    {
+      property: 'og:image:alt',
+      content: 'Score Board - Placar de Times',
+    },
+    // Twitter Card
+    {
+      name: 'twitter:card',
+      content: 'summary_large_image',
+    },
+    {
+      name: 'twitter:title',
+      content: 'Placar de Times - Score Board',
+    },
+    {
+      name: 'twitter:description',
+      content: 'Acompanhe a pontuação dos times em tempo real. Sistema de placar digital para gerenciar e visualizar scores de equipes esportivas.',
+    },
+    {
+      name: 'twitter:image',
+      content: '/icon-512x512.png',
+    },
+  ],
+})
 </script>
