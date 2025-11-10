@@ -7,4 +7,17 @@ html {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  /* Previne zoom por duplo clique no iOS */
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Previne zoom em elementos clicáveis */
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
 }
