@@ -18,22 +18,37 @@ export default defineNuxtConfig({
       },
       charset: 'utf-8',
       viewport: 'width=device-width, initial-scale=1',
-      title: 'Score Board - Sistema de Placar e Gerenciamento de Times',
+      title: 'ScoreBoard',
       meta: [
         {
           name: 'description',
-          content: 'Sistema completo de placar digital e gerenciamento de times. Sorteie equipes balanceadas, acompanhe pontuações em tempo real e gerencie jogadores com facilidade.',
+          content:
+            'Sistema completo de placar digital e gerenciamento de times. Sorteie equipes balanceadas, acompanhe pontuações em tempo real e gerencie jogadores com facilidade.',
         },
         {
           name: 'keywords',
-          content: 'placar digital, scoreboard, gerenciamento de times, sorteio de equipes, pontuação, esportes',
+          content:
+            'placar digital, scoreboard, gerenciamento de times, sorteio de equipes, pontuação, esportes, placar eletrônico, times balanceados',
         },
-        { name: 'author', content: 'Score Board' },
+        { name: 'author', content: 'Cledson Medeiros' },
         { name: 'robots', content: 'index, follow' },
         // Open Graph
         {
+          property: 'og:title',
+          content: 'ScoreBoard',
+        },
+        {
+          property: 'og:description',
+          content:
+            'Sistema completo de placar digital e gerenciamento de times. Sorteie equipes balanceadas, acompanhe pontuações em tempo real e gerencie jogadores com facilidade.',
+        },
+        {
+          property: 'og:type',
+          content: 'website',
+        },
+        {
           property: 'og:site_name',
-          content: 'Score Board',
+          content: 'ScoreBoard',
         },
         {
           property: 'og:locale',
@@ -53,7 +68,7 @@ export default defineNuxtConfig({
         },
         {
           property: 'og:image:alt',
-          content: 'Score Board - Sistema de Placar',
+          content: 'ScoreBoard - Sistema de Placar Digital',
         },
         // Twitter Card
         {
@@ -61,12 +76,21 @@ export default defineNuxtConfig({
           content: 'summary_large_image',
         },
         {
+          name: 'twitter:title',
+          content: 'ScoreBoard',
+        },
+        {
+          name: 'twitter:description',
+          content:
+            'Sistema completo de placar digital e gerenciamento de times. Sorteie equipes balanceadas, acompanhe pontuações em tempo real e gerencie jogadores com facilidade.',
+        },
+        {
           name: 'twitter:image',
           content: '/icon-512x512.png',
         },
         {
           name: 'twitter:image:alt',
-          content: 'Score Board - Sistema de Placar',
+          content: 'ScoreBoard - Sistema de Placar Digital',
         },
         // Theme color
         {

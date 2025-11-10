@@ -25,7 +25,10 @@
           md:h-14 md:w-14"
         title="Refazer sorteio de times"
       >
-        <Icon name="heroicons:arrow-path" class="h-7 w-7 text-white md:h-8 md:w-8" />
+        <Icon
+          name="heroicons:arrow-path"
+          class="h-7 w-7 text-white md:h-8 md:w-8"
+        />
       </button>
 
       <!-- Botão de Ver Times -->
@@ -42,14 +45,17 @@
 
       <!-- Botão de Selecionar Times -->
       <button
-        v-if="store.teams.filter(t => t.members.length > 0).length > 2"
+        v-if="store.teams.filter((t) => t.members.length > 0).length > 2"
         @click="showSelectorModal = true"
         class="flex h-12 w-12 cursor-pointer items-center justify-center
           rounded-full bg-red-700 shadow-xl transition-colors hover:bg-red-800
           md:h-14 md:w-14"
         title="Selecionar times para exibir"
       >
-        <Icon name="heroicons:arrow-path-rounded-square" class="h-7 w-7 text-white md:h-8 md:w-8" />
+        <Icon
+          name="heroicons:arrow-path-rounded-square"
+          class="h-7 w-7 text-white md:h-8 md:w-8"
+        />
       </button>
     </div>
 
@@ -73,7 +79,8 @@
         v-if="
           store.teams[redTeamIndex] &&
           store.teams[blueTeamIndex] &&
-          (store.teams[redTeamIndex]!.score > 0 || store.teams[blueTeamIndex]!.score > 0)
+          (store.teams[redTeamIndex]!.score > 0 ||
+            store.teams[blueTeamIndex]!.score > 0)
         "
         @reset="store.resetScores"
       />
@@ -140,57 +147,4 @@ const handleTeamSelection = ({
   blueTeamIndex.value = blue
   store.resetScores()
 }
-
-// SEO
-useHead({
-  title: 'Placar de Times - Score Board',
-  meta: [
-    {
-      name: 'description',
-      content: 'Acompanhe a pontuação dos times em tempo real. Sistema de placar digital para gerenciar e visualizar scores de equipes esportivas.',
-    },
-    {
-      name: 'keywords',
-      content: 'placar, score, times, equipes, pontuação, esportes, scoreboard, placar digital',
-    },
-    // Open Graph
-    {
-      property: 'og:title',
-      content: 'Placar de Times - Score Board',
-    },
-    {
-      property: 'og:description',
-      content: 'Acompanhe a pontuação dos times em tempo real. Sistema de placar digital para gerenciar e visualizar scores de equipes esportivas.',
-    },
-    {
-      property: 'og:type',
-      content: 'website',
-    },
-    {
-      property: 'og:image',
-      content: '/icon-512x512.png',
-    },
-    {
-      property: 'og:image:alt',
-      content: 'Score Board - Placar de Times',
-    },
-    // Twitter Card
-    {
-      name: 'twitter:card',
-      content: 'summary_large_image',
-    },
-    {
-      name: 'twitter:title',
-      content: 'Placar de Times - Score Board',
-    },
-    {
-      name: 'twitter:description',
-      content: 'Acompanhe a pontuação dos times em tempo real. Sistema de placar digital para gerenciar e visualizar scores de equipes esportivas.',
-    },
-    {
-      name: 'twitter:image',
-      content: '/icon-512x512.png',
-    },
-  ],
-})
 </script>
