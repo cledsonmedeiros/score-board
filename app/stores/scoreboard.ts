@@ -59,7 +59,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
           try {
             this.teams = JSON.parse(stored)
           } catch (e) {
-            console.error('Erro ao carregar times:', e)
+            console.error('Erro ao carregar equipes:', e)
             this.teams = [
               { name: 'EQUIPE 1', score: 0, members: [] },
               { name: 'EQUIPE 2', score: 0, members: [] },

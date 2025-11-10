@@ -23,7 +23,7 @@
         class="flex h-12 w-12 cursor-pointer items-center justify-center
           rounded-full bg-red-700 shadow-xl transition-colors hover:bg-red-800
           md:h-14 md:w-14"
-        title="Refazer sorteio de times"
+        title="Refazer sorteio de equipes"
       >
         <Icon
           name="heroicons:arrow-path"
@@ -31,26 +31,26 @@
         />
       </button>
 
-      <!-- Botão de Ver Times -->
+      <!-- Botão de Ver Equipes -->
       <button
         v-if="store.teams[0]?.members && store.teams[0].members.length > 0"
         @click="showViewModal = true"
         class="flex h-12 w-12 cursor-pointer items-center justify-center
           rounded-full bg-red-700 shadow-xl transition-colors hover:bg-red-800
           md:h-14 md:w-14"
-        title="Ver times atuais"
+        title="Ver equipes atuais"
       >
         <Icon name="heroicons:eye" class="h-7 w-7 text-white md:h-8 md:w-8" />
       </button>
 
-      <!-- Botão de Selecionar Times -->
+      <!-- Botão de Selecionar Equipes -->
       <button
         v-if="store.teams.filter((t) => t.members.length > 0).length > 2"
         @click="showSelectorModal = true"
         class="flex h-12 w-12 cursor-pointer items-center justify-center
           rounded-full bg-red-700 shadow-xl transition-colors hover:bg-red-800
           md:h-14 md:w-14"
-        title="Selecionar times para exibir"
+        title="Selecionar equipes para exibir"
       >
         <Icon
           name="heroicons:arrow-path-rounded-square"
@@ -114,7 +114,7 @@
       @close="showViewModal = false"
     />
 
-    <!-- Modal de Seleção de Times -->
+    <!-- Modal de Seleção de Equipes -->
     <TeamSelectorModal
       v-if="showSelectorModal"
       :teams="store.teams"

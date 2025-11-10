@@ -1,7 +1,7 @@
 {
   "name": "ScoreBoard",
   "short_name": "ScoreBoard",
-  "description": "Sistema completo de placar digital e gerenciamento de times",
+  "description": "Sistema completo de placar digital e gerenciamento de equipes",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -4,7 +4,7 @@
     <header class="border-b bg-white shadow-sm">
       <div class="flex items-center justify-between p-3 md:p-4">
         <h1 class="text-lg font-bold text-gray-800 md:text-xl">
-          Gerenciamento de Times
+          Gerenciamento de Equipes
         </h1>
         <NuxtLink
           to="/"
@@ -21,7 +21,7 @@
       <PlayerManager />
     </div>
 
-    <!-- Botão flutuante para sortear times -->
+    <!-- Botão flutuante para sortear equipes -->
     <button
       v-if="store.enabledPlayers.length >= 2"
       @click="showDrawModal = true"
@@ -29,7 +29,7 @@
         justify-center rounded-full bg-green-600 text-white shadow-lg
         transition-all hover:scale-110 hover:bg-green-700 md:right-6 md:bottom-6
         md:h-16 md:w-16"
-      title="Sortear Times"
+      title="Sortear equipes"
     >
       <Icon name="heroicons:user-group" class="h-8 w-8" />
     </button>

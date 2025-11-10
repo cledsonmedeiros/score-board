@@ -17,18 +17,19 @@ export default defineNuxtConfig({
         lang: 'pt-BR',
       },
       charset: 'utf-8',
-      viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+      viewport:
+        'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
       title: 'ScoreBoard',
       meta: [
         {
           name: 'description',
           content:
-            'Sistema completo de placar digital e gerenciamento de times. Sorteie equipes balanceadas, acompanhe pontuações em tempo real e gerencie jogadores com facilidade.',
+            'Sistema completo de placar digital e gerenciamento de equipes. Sorteie equipes balanceadas, acompanhe pontuações em tempo real e gerencie jogadores com facilidade.',
         },
         {
           name: 'keywords',
           content:
-            'placar digital, scoreboard, gerenciamento de times, sorteio de equipes, pontuação, esportes, placar eletrônico, times balanceados',
+            'placar digital, scoreboard, gerenciamento de equipes, sorteio de equipes, pontuação, esportes, placar eletrônico, equipes balanceadas',
         },
         { name: 'author', content: 'Cledson Medeiros' },
         { name: 'robots', content: 'index, follow' },
@@ -40,7 +41,7 @@ export default defineNuxtConfig({
         {
           property: 'og:description',
           content:
-            'Sistema completo de placar digital e gerenciamento de times. Sorteie equipes balanceadas, acompanhe pontuações em tempo real e gerencie jogadores com facilidade.',
+            'Sistema completo de placar digital e gerenciamento de equipes. Sorteie equipes balanceadas, acompanhe pontuações em tempo real e gerencie jogadores com facilidade.',
         },
         {
           property: 'og:type',
@@ -82,7 +83,7 @@ export default defineNuxtConfig({
         {
           name: 'twitter:description',
           content:
-            'Sistema completo de placar digital e gerenciamento de times. Sorteie equipes balanceadas, acompanhe pontuações em tempo real e gerencie jogadores com facilidade.',
+            'Sistema completo de placar digital e gerenciamento de equipes. Sorteie equipes balanceadas, acompanhe pontuações em tempo real e gerencie jogadores com facilidade.',
         },
         {
           name: 'twitter:image',
@@ -95,7 +96,7 @@ export default defineNuxtConfig({
         // Theme color
         {
           name: 'theme-color',
-          content: '#dc2626',
+          content: '#EF4444',
         },
       ],
       link: [

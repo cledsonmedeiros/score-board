@@ -10,7 +10,7 @@
       <!-- Cabeçalho -->
       <div class="mb-4 flex items-center justify-between md:mb-6">
         <h2 class="text-xl font-bold text-gray-800 md:text-2xl">
-          Selecionar Times
+          Selecionar Equipes
         </h2>
         <button
           @click="$emit('close')"
@@ -22,13 +22,13 @@
         </button>
       </div>
 
-      <!-- Aviso se não houver times -->
+      <!-- Aviso se não houver equipes -->
       <div
         v-if="availableTeams.length === 0"
         class="rounded-lg bg-yellow-50 p-4 text-center"
       >
         <p class="text-yellow-800">
-          Nenhum time disponível. Sortear times primeiro.
+          Nenhuma equipe disponível. Sortear equipes primeiro.
         </p>
       </div>
 
@@ -37,7 +37,7 @@
         <!-- Seletor Vermelho -->
         <div>
           <label class="mb-2 block text-sm font-medium text-gray-700">
-            Time Vermelho (Superior)
+            Equipe Vermelha (Superior)
           </label>
           <select
             v-model="localRedTeamIndex"
@@ -56,7 +56,7 @@
             </option>
           </select>
           
-          <!-- Membros do time vermelho -->
+          <!-- Membros da equipe vermelha -->
           <div
             v-if="availableTeams[localRedTeamIndex]"
             class="mt-2 rounded-lg border-2 border-red-300 bg-red-50 p-3"
@@ -75,7 +75,7 @@
         <!-- Seletor Azul -->
         <div>
           <label class="mb-2 block text-sm font-medium text-gray-700">
-            Time Azul (Inferior)
+            Equipe Azul (Inferior)
           </label>
           <select
             v-model="localBlueTeamIndex"
@@ -94,7 +94,7 @@
             </option>
           </select>
           
-          <!-- Membros do time azul -->
+          <!-- Membros da equipe azul -->
           <div
             v-if="availableTeams[localBlueTeamIndex]"
             class="mt-2 rounded-lg border-2 border-blue-300 bg-blue-50 p-3"

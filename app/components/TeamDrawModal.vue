@@ -11,7 +11,7 @@
       <!-- Cabeçalho -->
       <div class="mb-4 flex items-center justify-between md:mb-6">
         <h2 class="text-xl font-bold text-gray-800 md:text-2xl">
-          Sortear Times
+          Sortear Equipes
         </h2>
         <button
           @click="$emit('close')"
@@ -34,9 +34,9 @@
         </p>
       </div>
 
-      <!-- Preview dos Times Sorteados -->
+      <!-- Preview das Equipes Sorteadas -->
       <div v-else-if="showPreview && previewTeams">
-        <!-- Lista de Times -->
+        <!-- Lista de Equipes -->
         <div class="mb-4 grid gap-3 md:grid-cols-2">
           <div
             v-for="(team, index) in previewTeams"
@@ -70,7 +70,7 @@
             >
               {{ team.name }}
             </h3>
-            <div class="mb-2 grid flex-1 grid-cols-2 gap-2 content-start">
+            <div class="mb-2 grid flex-1 grid-cols-2 content-start gap-2">
               <PlayerBadge
                 v-for="member in team.members"
                 :key="member.id"
@@ -78,7 +78,7 @@
                 layout="vertical"
               />
             </div>
-            <!-- Info do time -->
+            <!-- Info da Equipe -->
             <div
               class="mt-auto flex items-center gap-3 border-t border-gray-200
                 pt-2 text-xs text-gray-600"
@@ -113,7 +113,7 @@
               class="flex-1 rounded-lg bg-green-600 px-4 py-2.5 font-semibold
                 text-white transition-colors hover:bg-green-700"
             >
-              ✓ Confirmar Times
+              ✓ Confirmar Equipes
             </button>
           </div>
           <button
@@ -143,22 +143,30 @@
 
         <!-- Configurações -->
         <div class="mb-6 space-y-4">
-          <!-- Número de times -->
+          <!-- Número de jogadores por equipe -->
           <div>
             <label class="mb-2 block text-sm font-medium text-gray-700"
-              >Número de Times</label
+              >Jogadores por Equipe</label
             >
             <input
-              v-model.number="numberOfTeams"
+              v-model.number="playersPerTeam"
               type="number"
-              min="2"
-              :max="store.enabledPlayers.length"
+              min="1"
+              :max="Math.ceil(store.enabledPlayers.length / 2)"
               class="w-full rounded-lg border border-gray-300 px-4 py-2
                 focus:border-blue-500 focus:ring-2 focus:ring-blue-500
                 focus:outline-none"
             />
             <p class="mt-1 text-xs text-gray-500">
-              Mínimo: 2 | Máximo: {{ store.enabledPlayers.length }}
+              Mínimo: 1 | Máximo:
+              {{ Math.ceil(store.enabledPlayers.length / 2) }}
+              <span
+                v-if="calculatedTeams > 0"
+                class="font-semibold text-blue-600"
+              >
+                | Serão criadas {{ calculatedTeams }}
+                {{ calculatedTeams === 1 ? 'equipe' : 'equipes' }}
+              </span>
             </p>
           </div>
 
@@ -245,13 +253,13 @@
           <button
             @click="handleDraw"
             :disabled="
-              numberOfTeams < 2 || numberOfTeams > store.enabledPlayers.length
+              playersPerTeam < 1 || playersPerTeam > store.enabledPlayers.length
             "
             class="flex-1 rounded-lg bg-blue-600 px-6 py-3 font-semibold
               text-white transition-colors hover:bg-blue-700
               disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Sortear Times
+            Sortear Equipes
           </button>
         </div>
       </div>
@@ -269,27 +277,41 @@ const emit = defineEmits<{
 
 const store = useScoreboardStore()
 
-const numberOfTeams = ref(3)
+const playersPerTeam = ref(4)
 const drawType = ref<'balanced' | 'random'>('balanced')
 const previewTeams = ref<Team[] | null>(null)
 const showPreview = ref(false)
 
+const calculatedTeams = computed(() => {
+  if (playersPerTeam.value < 1) return 0
+  return Math.floor(store.enabledPlayers.length / playersPerTeam.value)
+})
+
 const handleDraw = () => {
   try {
+    const numberOfTeams = calculatedTeams.value
+
+    if (numberOfTeams < 2) {
+      alert(
+        'É necessário ter jogadores suficientes para formar pelo menos 2 equipes.',
+      )
+      return
+    }
+
     let drawnTeams: Team[]
 
     if (drawType.value === 'balanced') {
-      drawnTeams = store.drawTeams(numberOfTeams.value)
+      drawnTeams = store.drawTeams(numberOfTeams)
     } else {
-      drawnTeams = store.drawRandomTeams(numberOfTeams.value)
+      drawnTeams = store.drawRandomTeams(numberOfTeams)
     }
 
-    // Guardar preview dos times (cópia profunda)
+    // Guardar preview das equipes (cópia profunda)
     previewTeams.value = JSON.parse(JSON.stringify(drawnTeams))
     showPreview.value = true
   } catch (error) {
-    console.error('Erro ao sortear times:', error)
-    alert('Erro ao sortear times. Tente novamente.')
+    console.error('Erro ao sortear equipes:', error)
+    alert('Erro ao sortear equipes. Tente novamente.')
   }
 }
 
@@ -299,7 +321,7 @@ const redrawTeams = () => {
 }
 
 const confirmTeams = () => {
-  // Os times já foram atualizados no composable pelo drawTeams/drawRandomTeams
+  // As equipes já foram atualizadas no composable pelo drawTeams/drawRandomTeams
   emit('drawn')
   emit('close')
 }

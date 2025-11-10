@@ -11,7 +11,7 @@
       <!-- Cabeçalho -->
       <div class="mb-4 flex items-center justify-between md:mb-6">
         <h2 class="text-xl font-bold text-gray-800 md:text-2xl">
-          Times Atuais
+           Equipes Atuais
         </h2>
         <button
           @click="$emit('close')"
@@ -23,7 +23,7 @@
         </button>
       </div>
 
-      <!-- Lista de Times -->
+      <!-- Lista de Equipes -->
       <div v-if="teams.some(t => t.members.length > 0)" class="mb-4 grid gap-3 md:grid-cols-2">
         <div
           v-for="(team, index) in teams"
@@ -66,7 +66,7 @@
               layout="vertical"
             />
           </div>
-          <!-- Info do time -->
+          <!-- Info da Equipe -->
           <div
             class="mt-auto flex items-center gap-3 border-t border-gray-200
               pt-2 text-xs text-gray-600"
@@ -88,17 +88,17 @@
         </div>
       </div>
 
-      <!-- Aviso se não houver times -->
+      <!-- Aviso se não houver equipes -->
       <div
         v-else
         class="rounded-lg bg-yellow-50 p-8 text-center"
       >
         <Icon name="heroicons:user-group" class="mx-auto mb-3 h-12 w-12 text-yellow-600" />
         <p class="text-lg font-semibold text-yellow-800 mb-2">
-          Nenhum time sorteado ainda
+          Nenhuma equipe sorteada ainda
         </p>
         <p class="text-sm text-yellow-700">
-          Vá para a página de gerenciamento para sortear times.
+          Vá para a página de gerenciamento para sortear equipes.
         </p>
       </div>
 
