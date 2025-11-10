@@ -1,6 +1,6 @@
 {
-  "name": "Score Board - Sistema de Placar e Gerenciamento de Times",
-  "short_name": "Score Board",
+  "name": "ScoreBoard",
+  "short_name": "ScoreBoard",
   "description": "Sistema completo de placar digital e gerenciamento de times",
   "start_url": "/",
   "display": "standalone",
