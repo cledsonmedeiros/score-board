@@ -33,13 +33,12 @@
         <div
           v-for="member in members"
           :key="member.id"
-          class="flex items-center gap-1 rounded-full bg-white/20 px-2 py-1
-            backdrop-blur-sm md:gap-2 md:px-3 md:py-1.5"
+          class="rounded-full bg-white/20 px-3 py-1 backdrop-blur-sm
+            md:px-4 md:py-1.5"
         >
-          <span class="max-w-[100px] truncate text-xs font-semibold text-white md:max-w-[150px] md:text-sm" :title="member.name">{{
+          <span class="max-w-[120px] truncate text-xs font-semibold text-white md:max-w-[180px] md:text-sm" :title="member.name">{{
             member.name
           }}</span>
-          <StarRating :model-value="member.weight" :disabled="true" size="sm" />
         </div>
       </div>
     </div>
