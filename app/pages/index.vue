@@ -3,11 +3,13 @@
     <!-- Equipe 1 -->
     <div
       @click="increment1"
-      class="relative flex flex-1 cursor-pointer items-center justify-center bg-red-500"
+      class="relative flex flex-1 cursor-pointer items-center justify-center
+        bg-red-500"
     >
       <!-- Nome da Equipe no Topo -->
       <h2
-        class="score absolute top-3 right-0 left-0 text-center text-lg font-black tracking-widest text-white"
+        class="score absolute top-3 right-0 left-0 text-center text-lg
+          font-black tracking-widest text-white"
       >
         {{ teamName1 }}
       </h2>
@@ -20,7 +22,9 @@
       <!-- Botão Decrementar Equipe 1 -->
       <button
         @click.stop="decrement1"
-        class="absolute bottom-6 left-6 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border-none bg-red-700 shadow-xl transition-all duration-200 hover:bg-red-800"
+        class="absolute bottom-6 left-6 flex h-14 w-14 cursor-pointer
+          items-center justify-center rounded-full border-none bg-red-700
+          shadow-xl transition-all duration-200 hover:bg-red-800"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -42,7 +46,9 @@
     >
       <button
         @click="resetScores"
-        class="flex h-16 w-16 cursor-pointer items-center justify-center rounded-full border-4 border-white bg-gray-600 shadow-xl transition-all duration-200 hover:bg-gray-700"
+        class="flex h-16 w-16 cursor-pointer items-center justify-center
+          rounded-full border-4 border-white bg-gray-600 shadow-xl
+          transition-all duration-200 hover:bg-gray-700"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -65,7 +71,8 @@
     <!-- Equipe 2 -->
     <div
       @click="increment2"
-      class="relative flex flex-1 cursor-pointer items-center justify-center bg-blue-500"
+      class="relative flex flex-1 cursor-pointer items-center justify-center
+        bg-blue-500"
     >
       <!-- Pontuação Grande no Centro -->
       <div class="score text-[320px] leading-none font-black text-white">
@@ -74,7 +81,8 @@
 
       <!-- Nome da Equipe no Fundo -->
       <h2
-        class="absolute right-0 bottom-6 left-0 text-center text-lg font-bold tracking-widest text-white"
+        class="absolute right-0 bottom-6 left-0 text-center text-lg font-bold
+          tracking-widest text-white"
       >
         {{ teamName2 }}
       </h2>
@@ -83,7 +91,9 @@
       <button
         v-if="score2 > 0"
         @click.stop="decrement2"
-        class="absolute top-6 left-6 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border-none bg-blue-700 shadow-xl transition-all duration-200 hover:bg-blue-800"
+        class="absolute top-6 left-6 flex h-14 w-14 cursor-pointer items-center
+          justify-center rounded-full border-none bg-blue-700 shadow-xl
+          transition-all duration-200 hover:bg-blue-800"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
