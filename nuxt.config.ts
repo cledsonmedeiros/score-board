@@ -26,6 +26,7 @@ export default defineNuxtConfig({
       background_color: '#ffffff',
       display: 'standalone',
       start_url: '/',
+      scope: '/',
       icons: [
         {
           src: '/icon-192x192.png',
@@ -47,8 +48,12 @@ export default defineNuxtConfig({
     },
     workbox: {
       navigateFallback: '/',
+      navigateFallbackDenylist: [/^\/api\//, /\/offline\.html$/],
       globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
+      globIgnores: ['offline.html'],
       cleanupOutdatedCaches: true,
+      clientsClaim: true,
+      skipWaiting: true,
       runtimeCaching: [
         {
           urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
@@ -80,8 +85,12 @@ export default defineNuxtConfig({
         },
       ],
     },
+    client: {
+      installPrompt: true,
+      periodicSyncForUpdates: 3600,
+    },
     devOptions: {
-      enabled: true,
+      enabled: false,
       suppressWarnings: true,
       type: 'module',
     },

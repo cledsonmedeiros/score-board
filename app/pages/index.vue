@@ -147,6 +147,16 @@ const showSelectorModal = ref(false)
 const redTeamIndex = ref(0)
 const blueTeamIndex = ref(1)
 
+// Atualiza a cor do tema dinamicamente baseado na orientação
+watch(isLandscape, (landscape) => {
+  if (import.meta.client) {
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', landscape ? '#3B82F6' : '#EF4444')
+    }
+  }
+}, { immediate: true })
+
 const handleTeamSelection = ({
   redTeamIndex: red,
   blueTeamIndex: blue,
