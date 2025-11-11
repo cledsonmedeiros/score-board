@@ -15,3 +15,15 @@ declare module 'virtual:pwa-register/vue' {
     updateServiceWorker: (reloadPage?: boolean) => Promise<void>
   }
 }
+
+declare module '#app' {
+  interface NuxtApp {
+    $pwa?: {
+      needRefresh: Ref<boolean>
+      offlineReady: Ref<boolean>
+      updateServiceWorker: (reloadPage?: boolean) => Promise<void>
+    }
+  }
+}
+
+export {}

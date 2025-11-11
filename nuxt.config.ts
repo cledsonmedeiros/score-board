@@ -10,7 +10,6 @@ export default defineNuxtConfig({
   },
   modules: [
     '@nuxt/fonts',
-    '@nuxt/scripts',
     '@nuxt/icon',
     '@pinia/nuxt',
     '@vite-pwa/nuxt',
