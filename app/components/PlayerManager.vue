@@ -25,7 +25,7 @@
               required
             />
           </div>
-          <div class="flex-shrink-0">
+          <div class="shrink-0">
             <label class="mb-1 block text-sm font-medium text-gray-700"
               >Nível (1-5 estrelas)</label
             >
@@ -95,7 +95,7 @@
             <button
               @click="store.togglePlayerEnabled(player.id)"
               :class="[
-                `flex h-10 w-10 flex-shrink-0 items-center justify-center
+                `flex h-10 w-10 shrink-0 items-center justify-center
                 rounded-full transition-colors`,
                 player.enabled
                   ? 'bg-green-100 text-green-600 hover:bg-green-200'
@@ -135,7 +135,7 @@
                 >
                 <button
                   @click="startEdit(player)"
-                  class="flex-shrink-0 text-gray-400 hover:text-blue-600"
+                  class="shrink-0 text-gray-400 hover:text-blue-600"
                   title="Editar nome"
                 >
                   <Icon name="heroicons:pencil-square" class="h-4 w-4" />
@@ -144,7 +144,7 @@
             </div>
 
             <!-- Peso -->
-            <div class="flex-shrink-0">
+            <div class="shrink-0">
               <StarRating
                 :model-value="player.weight"
                 @update="store.updatePlayer(player.id, { weight: $event })"
@@ -155,7 +155,7 @@
             <!-- Botão Remover -->
             <button
               @click="handleRemovePlayer(player.id)"
-              class="flex h-8 w-8 flex-shrink-0 items-center justify-center
+              class="flex h-8 w-8 shrink-0 items-center justify-center
                 rounded-full text-red-600 transition-colors hover:bg-red-50"
               title="Remover jogador"
             >

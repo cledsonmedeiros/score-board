@@ -39,7 +39,7 @@
             md:py-1.5"
         >
           <span
-            class="max-w-[80px] truncate text-[10px] font-semibold text-white
+            class="max-w-20 truncate text-[10px] font-semibold text-white
               sm:max-w-[120px] sm:text-xs md:max-w-[180px] md:text-sm"
             :title="member.name"
             >{{ member.name }}</span

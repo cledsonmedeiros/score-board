@@ -41,7 +41,7 @@
           <div
             v-for="(team, index) in previewTeams"
             :key="index"
-            class="flex min-h-[160px] flex-col rounded-lg border-2 p-3"
+            class="flex min-h-40 flex-col rounded-lg border-2 p-3"
             :class="
               index === 0
                 ? 'border-red-300 bg-red-50'
