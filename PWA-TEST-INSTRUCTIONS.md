@@ -7,7 +7,6 @@
    - `skipWaiting: true` - Pula a espera por outras abas fechadas
    - `scope: '/'` - Define o escopo completo do app
    - Cache de todos os assets (JS, CSS, HTML, imagens, fontes)
-   - Cache do Tailwind CDN (1 ano)
    - Cache dos ícones Iconify (30 dias)
 
 2. **Precache de 35 arquivos** (588.74 KiB)
