@@ -9,9 +9,11 @@
     <!-- Nome da Equipe -->
     <h2
       :class="[
-        `score absolute text-center text-lg font-black tracking-widest
-        text-white md:text-2xl`,
-        position === 'top' ? 'top-3 right-0 left-0' : 'right-0 bottom-6 left-0',
+        `score absolute text-center font-black tracking-widest
+        text-white text-base sm:text-lg md:text-2xl`,
+        position === 'top'
+          ? 'top-2 right-0 left-0 sm:top-3' 
+          : 'right-0 bottom-4 left-0 sm:bottom-6',
       ]"
     >
       {{ teamName }}
@@ -21,24 +23,24 @@
     <div
       v-if="members && members.length > 0"
       :class="[
-        'absolute px-4 md:px-8',
+        'absolute px-3 sm:px-4 md:px-8',
         position === 'top'
-          ? 'top-12 right-0 left-0 md:top-16'
-          : 'right-0 bottom-14 left-0 md:bottom-20',
+          ? 'top-8 right-0 left-0 sm:top-12 md:top-16'
+          : 'right-0 bottom-10 left-0 sm:bottom-14 md:bottom-20',
       ]"
     >
       <div
-        class="mx-auto flex max-w-4xl flex-wrap justify-center gap-2 md:gap-3"
+        class="mx-auto flex max-w-4xl flex-wrap justify-center gap-1.5 sm:gap-2 md:gap-3"
       >
         <div
           v-for="member in members"
           :key="member.id"
-          class="rounded-full bg-white/20 px-3 py-1 backdrop-blur-sm md:px-4
+          class="rounded-full bg-white/20 px-2 py-0.5 backdrop-blur-sm sm:px-3 sm:py-1 md:px-4
             md:py-1.5"
         >
           <span
-            class="max-w-[120px] truncate text-xs font-semibold text-white
-              md:max-w-[180px] md:text-sm"
+            class="max-w-[80px] truncate text-[10px] font-semibold text-white
+              sm:max-w-[120px] sm:text-xs md:max-w-[180px] md:text-sm"
             :title="member.name"
             >{{ member.name }}</span
           >
@@ -48,8 +50,8 @@
 
     <!-- Pontuação -->
     <div
-      class="score text-[200px] leading-none font-black text-white
-        md:text-[320px]"
+      class="score font-black text-white leading-none
+        text-[120px] sm:text-[200px] md:text-[320px] landscape:text-[140px] landscape:sm:text-[180px]"
     >
       {{ score }}
     </div>
@@ -60,18 +62,23 @@
         v-if="score > 0"
         @click.stop="$emit('decrement')"
         :class="[
-          `absolute flex h-12 w-12 cursor-pointer items-center justify-center
-          rounded-full border-none shadow-xl md:h-14 md:w-14`,
+          `absolute flex cursor-pointer items-center justify-center
+          rounded-full border-none shadow-xl
+          h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14`,
           position === 'top'
-            ? 'bottom-4 left-4 md:bottom-6 md:left-6'
-            : 'top-4 left-4 md:top-6 md:left-6',
+            ? 'bottom-2 left-2 sm:bottom-4 sm:left-4 md:bottom-6 md:left-6'
+            : position === 'bottom'
+            ? 'top-2 left-2 sm:top-4 sm:left-4 md:top-6 md:left-6'
+            : position === 'left'
+            ? 'top-2 right-2 sm:top-4 sm:right-4 md:top-6 md:right-6'
+            : 'top-2 left-2 sm:top-4 sm:left-4 md:top-6 md:left-6',
           buttonBgColor,
           buttonHoverColor,
         ]"
       >
         <Icon
           name="heroicons:minus-20-solid"
-          class="h-7 w-7 text-white md:h-8 md:w-8"
+          class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8"
         />
       </button>
     </ScaleTransition>
@@ -84,7 +91,7 @@ import type { Player } from '~/stores/scoreboard'
 interface Props {
   teamName: string
   score: number
-  position: 'top' | 'bottom'
+  position: 'top' | 'bottom' | 'left' | 'right'
   members?: Player[]
   bgColor?: string
   buttonBgColor?: string

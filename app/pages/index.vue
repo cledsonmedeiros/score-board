@@ -1,20 +1,21 @@
 <template>
-  <div class="flex h-screen w-screen flex-col overflow-hidden select-none">
+  <div class="flex h-screen w-screen overflow-hidden select-none">
     <!-- PWA Update Prompt -->
     <PWAUpdatePrompt />
 
     <!-- Botões de Ação -->
-    <div class="absolute top-4 right-4 z-20 flex flex-col gap-2">
+    <div class="absolute top-2 right-2 z-20 flex landscape:flex-row landscape:gap-2 portrait:flex-col portrait:gap-2 sm:top-4 sm:right-4">
       <!-- Botão de Gerenciamento -->
       <NuxtLink to="/manage">
         <button
-          class="flex h-12 w-12 cursor-pointer items-center justify-center
-            rounded-full bg-red-700 shadow-xl transition-colors hover:bg-red-800
-            md:h-14 md:w-14"
+          :class="[
+            'flex h-10 w-10 cursor-pointer items-center justify-center rounded-full shadow-xl transition-colors sm:h-12 sm:w-12 md:h-14 md:w-14',
+            isLandscape ? 'bg-blue-700 hover:bg-blue-800' : 'bg-red-700 hover:bg-red-800'
+          ]"
         >
           <Icon
             name="heroicons:cog-6-tooth"
-            class="h-7 w-7 text-white md:h-8 md:w-8"
+            class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8"
           />
         </button>
       </NuxtLink>
@@ -23,14 +24,15 @@
       <button
         v-if="store.teams[0]?.members && store.teams[0].members.length > 0"
         @click="showDrawModal = true"
-        class="flex h-12 w-12 cursor-pointer items-center justify-center
-          rounded-full bg-red-700 shadow-xl transition-colors hover:bg-red-800
-          md:h-14 md:w-14"
+        :class="[
+          'flex h-10 w-10 cursor-pointer items-center justify-center rounded-full shadow-xl transition-colors sm:h-12 sm:w-12 md:h-14 md:w-14',
+          isLandscape ? 'bg-blue-700 hover:bg-blue-800' : 'bg-red-700 hover:bg-red-800'
+        ]"
         title="Refazer sorteio de equipes"
       >
         <Icon
           name="heroicons:arrow-path"
-          class="h-7 w-7 text-white md:h-8 md:w-8"
+          class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8"
         />
       </button>
 
@@ -38,70 +40,75 @@
       <button
         v-if="store.teams[0]?.members && store.teams[0].members.length > 0"
         @click="showViewModal = true"
-        class="flex h-12 w-12 cursor-pointer items-center justify-center
-          rounded-full bg-red-700 shadow-xl transition-colors hover:bg-red-800
-          md:h-14 md:w-14"
+        :class="[
+          'flex h-10 w-10 cursor-pointer items-center justify-center rounded-full shadow-xl transition-colors sm:h-12 sm:w-12 md:h-14 md:w-14',
+          isLandscape ? 'bg-blue-700 hover:bg-blue-800' : 'bg-red-700 hover:bg-red-800'
+        ]"
         title="Ver equipes atuais"
       >
-        <Icon name="heroicons:eye" class="h-7 w-7 text-white md:h-8 md:w-8" />
+        <Icon name="heroicons:eye" class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8" />
       </button>
 
       <!-- Botão de Selecionar Equipes -->
       <button
         v-if="store.teams.filter((t) => t.members.length > 0).length > 2"
         @click="showSelectorModal = true"
-        class="flex h-12 w-12 cursor-pointer items-center justify-center
-          rounded-full bg-red-700 shadow-xl transition-colors hover:bg-red-800
-          md:h-14 md:w-14"
+        :class="[
+          'flex h-10 w-10 cursor-pointer items-center justify-center rounded-full shadow-xl transition-colors sm:h-12 sm:w-12 md:h-14 md:w-14',
+          isLandscape ? 'bg-blue-700 hover:bg-blue-800' : 'bg-red-700 hover:bg-red-800'
+        ]"
         title="Selecionar equipes para exibir"
       >
         <Icon
           name="heroicons:arrow-path-rounded-square"
-          class="h-7 w-7 text-white md:h-8 md:w-8"
+          class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8"
         />
       </button>
     </div>
 
-    <!-- Equipe 1 -->
-    <TeamScore
-      v-if="store.teams[redTeamIndex]"
-      :team-name="store.teams[redTeamIndex]!.name"
-      :score="store.teams[redTeamIndex]!.score"
-      :members="store.teams[redTeamIndex]!.members"
-      position="top"
-      bg-color="bg-red-500"
-      button-bg-color="bg-red-700"
-      button-hover-color="hover:bg-red-800"
-      @increment="store.incrementTeamScore(redTeamIndex)"
-      @decrement="store.decrementTeamScore(redTeamIndex)"
-    />
-
-    <!-- Botão Reset no Centro -->
-    <ScaleTransition>
-      <ResetButton
-        v-if="
-          store.teams[redTeamIndex] &&
-          store.teams[blueTeamIndex] &&
-          (store.teams[redTeamIndex]!.score > 0 ||
-            store.teams[blueTeamIndex]!.score > 0)
-        "
-        @reset="store.resetScores"
+    <!-- Container dos Placares -->
+    <div class="flex h-full w-full portrait:flex-col landscape:flex-row">
+      <!-- Equipe 1 -->
+      <TeamScore
+        v-if="store.teams[redTeamIndex]"
+        :team-name="store.teams[redTeamIndex]!.name"
+        :score="store.teams[redTeamIndex]!.score"
+        :members="store.teams[redTeamIndex]!.members"
+        :position="isLandscape ? 'left' : 'top'"
+        bg-color="bg-red-500"
+        button-bg-color="bg-red-700"
+        button-hover-color="hover:bg-red-800"
+        @increment="store.incrementTeamScore(redTeamIndex)"
+        @decrement="store.decrementTeamScore(redTeamIndex)"
       />
-    </ScaleTransition>
 
-    <!-- Equipe 2 -->
-    <TeamScore
-      v-if="store.teams[blueTeamIndex]"
-      :team-name="store.teams[blueTeamIndex]!.name"
-      :score="store.teams[blueTeamIndex]!.score"
-      :members="store.teams[blueTeamIndex]!.members"
-      position="bottom"
-      bg-color="bg-blue-500"
-      button-bg-color="bg-blue-700"
-      button-hover-color="hover:bg-blue-800"
-      @increment="store.incrementTeamScore(blueTeamIndex)"
-      @decrement="store.decrementTeamScore(blueTeamIndex)"
-    />
+      <!-- Botão Reset no Centro -->
+      <ScaleTransition>
+        <ResetButton
+          v-if="
+            store.teams[redTeamIndex] &&
+            store.teams[blueTeamIndex] &&
+            (store.teams[redTeamIndex]!.score > 0 ||
+              store.teams[blueTeamIndex]!.score > 0)
+          "
+          @reset="store.resetScores"
+        />
+      </ScaleTransition>
+
+      <!-- Equipe 2 -->
+      <TeamScore
+        v-if="store.teams[blueTeamIndex]"
+        :team-name="store.teams[blueTeamIndex]!.name"
+        :score="store.teams[blueTeamIndex]!.score"
+        :members="store.teams[blueTeamIndex]!.members"
+        :position="isLandscape ? 'right' : 'bottom'"
+        bg-color="bg-blue-500"
+        button-bg-color="bg-blue-700"
+        button-hover-color="hover:bg-blue-800"
+        @increment="store.incrementTeamScore(blueTeamIndex)"
+        @decrement="store.decrementTeamScore(blueTeamIndex)"
+      />
+    </div>
 
     <!-- Modal de Sorteio -->
     <TeamDrawModal
@@ -131,6 +138,7 @@
 
 <script setup lang="ts">
 const store = useScoreboardStore()
+const { isLandscape } = useOrientation()
 
 const showDrawModal = ref(false)
 const showViewModal = ref(false)

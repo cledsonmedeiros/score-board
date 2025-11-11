@@ -1,15 +1,35 @@
 <script setup lang="ts">
+// @ts-expect-error - virtual module provided by @vite-pwa/nuxt
 import { useRegisterSW } from 'virtual:pwa-register/vue'
 
-const {
-  offlineReady,
-  needRefresh,
-  updateServiceWorker,
-} = useRegisterSW()
+const offlineReady = ref(false)
+const needRefresh = ref(false)
+let updateServiceWorker: ((reloadPage?: boolean) => Promise<void>) | null = null
+
+if (import.meta.client) {
+  const sw = useRegisterSW()
+  offlineReady.value = sw.offlineReady.value
+  needRefresh.value = sw.needRefresh.value
+  updateServiceWorker = sw.updateServiceWorker
+  
+  watch(sw.offlineReady, (value) => {
+    offlineReady.value = value
+  })
+  
+  watch(sw.needRefresh, (value) => {
+    needRefresh.value = value
+  })
+}
 
 const close = () => {
   offlineReady.value = false
   needRefresh.value = false
+}
+
+const update = async () => {
+  if (updateServiceWorker) {
+    await updateServiceWorker()
+  }
 }
 </script>
 
@@ -50,7 +70,7 @@ const close = () => {
         <div class="flex flex-shrink-0 gap-2">
           <button
             v-if="needRefresh"
-            @click="updateServiceWorker()"
+            @click="update"
             class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
           >
             Atualizar
