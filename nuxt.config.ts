@@ -1,3 +1,5 @@
+import tailwindcss from '@tailwindcss/vite'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -8,12 +10,7 @@ export default defineNuxtConfig({
       enabled: true,
     },
   },
-  modules: [
-    '@nuxt/fonts',
-    '@nuxt/icon',
-    '@pinia/nuxt',
-    '@vite-pwa/nuxt',
-  ],
+  modules: ['@nuxt/fonts', '@nuxt/icon', '@pinia/nuxt', '@vite-pwa/nuxt'],
 
   pwa: {
     registerType: 'prompt',
@@ -201,7 +198,10 @@ export default defineNuxtConfig({
           href: '/apple-touch-icon.png',
         },
       ],
-      script: [{ src: 'https://cdn.tailwindcss.com' }],
+      // script: [{ src: 'https://cdn.tailwindcss.com' }],
     },
+  },
+  vite: {
+    plugins: [tailwindcss()],
   },
 })
