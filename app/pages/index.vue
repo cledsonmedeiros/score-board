@@ -1,5 +1,8 @@
 <template>
   <div class="flex h-screen w-screen flex-col overflow-hidden select-none">
+    <!-- PWA Update Prompt -->
+    <PWAUpdatePrompt />
+
     <!-- Botões de Ação -->
     <div class="absolute top-4 right-4 z-20 flex flex-col gap-2">
       <!-- Botão de Gerenciamento -->

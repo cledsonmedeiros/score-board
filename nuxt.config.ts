@@ -8,7 +8,85 @@ export default defineNuxtConfig({
       enabled: true,
     },
   },
-  modules: ['@nuxt/fonts', '@nuxt/scripts', '@nuxt/icon', '@pinia/nuxt'],
+  modules: [
+    '@nuxt/fonts',
+    '@nuxt/scripts',
+    '@nuxt/icon',
+    '@pinia/nuxt',
+    '@vite-pwa/nuxt',
+  ],
+
+  pwa: {
+    registerType: 'prompt',
+    manifest: {
+      name: 'ScoreBoard',
+      short_name: 'ScoreBoard',
+      description:
+        'Sistema completo de placar digital e gerenciamento de equipes',
+      theme_color: '#EF4444',
+      background_color: '#ffffff',
+      display: 'standalone',
+      start_url: '/',
+      icons: [
+        {
+          src: '/icon-192x192.png',
+          sizes: '192x192',
+          type: 'image/png',
+        },
+        {
+          src: '/icon-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+        },
+        {
+          src: '/icon-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'any maskable',
+        },
+      ],
+    },
+    workbox: {
+      navigateFallback: '/',
+      globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
+      cleanupOutdatedCaches: true,
+      runtimeCaching: [
+        {
+          urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'cdn-cache',
+            expiration: {
+              maxEntries: 10,
+              maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+            },
+            cacheableResponse: {
+              statuses: [0, 200],
+            },
+          },
+        },
+        {
+          urlPattern: /^https:\/\/api\.iconify\.design\/.*/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'iconify-cache',
+            expiration: {
+              maxEntries: 100,
+              maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+            },
+            cacheableResponse: {
+              statuses: [0, 200],
+            },
+          },
+        },
+      ],
+    },
+    devOptions: {
+      enabled: true,
+      suppressWarnings: true,
+      type: 'module',
+    },
+  },
 
   css: ['~/assets/css/main.css'],
   app: {
