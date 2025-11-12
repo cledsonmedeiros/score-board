@@ -11,11 +11,11 @@ if (import.meta.client) {
   offlineReady.value = sw.offlineReady.value
   needRefresh.value = sw.needRefresh.value
   updateServiceWorker = sw.updateServiceWorker
-  
+
   watch(sw.offlineReady, (value) => {
     offlineReady.value = value
   })
-  
+
   watch(sw.needRefresh, (value) => {
     needRefresh.value = value
   })
@@ -38,9 +38,7 @@ const update = async () => {
     v-if="offlineReady || needRefresh"
     class="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md"
   >
-    <div
-      class="rounded-lg bg-white p-4 shadow-lg ring-1 ring-black/5"
-    >
+    <div class="rounded-lg bg-white p-4 shadow-lg ring-1 ring-black/5">
       <div class="flex items-start gap-3">
         <div class="shrink-0">
           <Icon
@@ -54,15 +52,20 @@ const update = async () => {
             class="h-6 w-6 text-blue-500"
           />
         </div>
-        
-        <div class="flex-1 min-w-0">
+
+        <div class="min-w-0 flex-1">
           <p class="text-sm font-medium text-gray-900">
-            {{ offlineReady ? 'App pronto para uso offline' : 'Nova versão disponível' }}
+            {{
+              offlineReady
+                ? 'App pronto para uso offline'
+                : 'Nova versão disponível'
+            }}
           </p>
           <p class="mt-1 text-sm text-gray-500">
-            {{ offlineReady 
-              ? 'O app agora funciona sem internet.' 
-              : 'Clique em atualizar para obter a versão mais recente.' 
+            {{
+              offlineReady
+                ? 'O app agora funciona sem internet.'
+                : 'Clique em atualizar para obter a versão mais recente.'
             }}
           </p>
         </div>
@@ -71,13 +74,17 @@ const update = async () => {
           <button
             v-if="needRefresh"
             @click="update"
-            class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+            class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold
+              text-white shadow-sm hover:bg-blue-500 focus-visible:outline-2
+              focus-visible:outline-offset-2 focus-visible:outline-blue-600"
           >
             Atualizar
           </button>
           <button
             @click="close"
-            class="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+            class="rounded-md bg-white px-3 py-1.5 text-sm font-semibold
+              text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300
+              hover:bg-gray-50"
           >
             {{ needRefresh ? 'Depois' : 'Ok' }}
           </button>

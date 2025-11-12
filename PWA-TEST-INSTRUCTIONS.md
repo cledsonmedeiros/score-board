@@ -14,6 +14,7 @@
 ## Passos para testar:
 
 ### 1. Fazer deploy da nova versão
+
 ```bash
 git add .
 git commit -m "feat: PWA offline configurado"
@@ -47,13 +48,15 @@ git push
 
 7. **Ative o modo avião**
 
-8. **Abra o app** - Deve funcionar offline! 
+8. **Abra o app** - Deve funcionar offline!
 
 ## Debug se não funcionar:
 
 No Safari Desktop conectado ao iPhone:
+
 1. Safari > Develop > [Seu iPhone] > [Seu Site]
 2. Verifique no Console:
+
    ```javascript
    // Ver service workers registrados
    navigator.serviceWorker.getRegistrations()

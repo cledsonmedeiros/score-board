@@ -25,9 +25,9 @@
     <button
       v-if="store.enabledPlayers.length >= 2"
       @click="showDrawModal = true"
-      class="fixed right-4 bottom-4 z-10 flex h-14 w-14 items-center
+      class="fixed bottom-4 right-4 z-10 flex h-14 w-14 items-center
         justify-center rounded-full bg-green-600 text-white shadow-lg
-        transition-all hover:scale-110 hover:bg-green-700 md:right-6 md:bottom-6
+        transition-all hover:scale-110 hover:bg-green-700 md:bottom-6 md:right-6
         md:h-16 md:w-16"
       title="Sortear equipes"
     >

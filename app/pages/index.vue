@@ -1,16 +1,23 @@
 <template>
-  <div class="flex h-dvh w-screen overflow-hidden select-none">
+  <div class="flex h-dvh w-screen select-none overflow-hidden">
     <!-- PWA Update Prompt -->
     <PWAUpdatePrompt />
 
     <!-- Botões de Ação -->
-    <div class="absolute top-2 right-2 z-20 flex landscape:flex-row landscape:gap-2 portrait:flex-col portrait:gap-2 sm:top-4 sm:right-4">
+    <div
+      class="absolute right-2 top-2 z-20 flex sm:right-4 sm:top-4
+        portrait:flex-col portrait:gap-2 landscape:flex-row landscape:gap-2"
+    >
       <!-- Botão de Gerenciamento -->
       <NuxtLink to="/manage">
         <button
           :class="[
-            'flex h-10 w-10 cursor-pointer items-center justify-center rounded-full shadow-xl transition-colors sm:h-12 sm:w-12 md:h-14 md:w-14',
-            isLandscape ? 'bg-blue-700 hover:bg-blue-800' : 'bg-red-700 hover:bg-red-800'
+            `flex h-10 w-10 cursor-pointer items-center justify-center
+            rounded-full shadow-xl transition-colors sm:h-12 sm:w-12 md:h-14
+            md:w-14`,
+            isLandscape
+              ? 'bg-blue-700 hover:bg-blue-800'
+              : 'bg-red-700 hover:bg-red-800',
           ]"
         >
           <Icon
@@ -25,8 +32,12 @@
         v-if="store.teams[0]?.members && store.teams[0].members.length > 0"
         @click="showDrawModal = true"
         :class="[
-          'flex h-10 w-10 cursor-pointer items-center justify-center rounded-full shadow-xl transition-colors sm:h-12 sm:w-12 md:h-14 md:w-14',
-          isLandscape ? 'bg-blue-700 hover:bg-blue-800' : 'bg-red-700 hover:bg-red-800'
+          `flex h-10 w-10 cursor-pointer items-center justify-center
+          rounded-full shadow-xl transition-colors sm:h-12 sm:w-12 md:h-14
+          md:w-14`,
+          isLandscape
+            ? 'bg-blue-700 hover:bg-blue-800'
+            : 'bg-red-700 hover:bg-red-800',
         ]"
         title="Refazer sorteio de equipes"
       >
@@ -41,12 +52,19 @@
         v-if="store.teams[0]?.members && store.teams[0].members.length > 0"
         @click="showViewModal = true"
         :class="[
-          'flex h-10 w-10 cursor-pointer items-center justify-center rounded-full shadow-xl transition-colors sm:h-12 sm:w-12 md:h-14 md:w-14',
-          isLandscape ? 'bg-blue-700 hover:bg-blue-800' : 'bg-red-700 hover:bg-red-800'
+          `flex h-10 w-10 cursor-pointer items-center justify-center
+          rounded-full shadow-xl transition-colors sm:h-12 sm:w-12 md:h-14
+          md:w-14`,
+          isLandscape
+            ? 'bg-blue-700 hover:bg-blue-800'
+            : 'bg-red-700 hover:bg-red-800',
         ]"
         title="Ver equipes atuais"
       >
-        <Icon name="heroicons:eye" class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8" />
+        <Icon
+          name="heroicons:eye"
+          class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8"
+        />
       </button>
 
       <!-- Botão de Selecionar Equipes -->
@@ -54,8 +72,12 @@
         v-if="store.teams.filter((t) => t.members.length > 0).length > 2"
         @click="showSelectorModal = true"
         :class="[
-          'flex h-10 w-10 cursor-pointer items-center justify-center rounded-full shadow-xl transition-colors sm:h-12 sm:w-12 md:h-14 md:w-14',
-          isLandscape ? 'bg-blue-700 hover:bg-blue-800' : 'bg-red-700 hover:bg-red-800'
+          `flex h-10 w-10 cursor-pointer items-center justify-center
+          rounded-full shadow-xl transition-colors sm:h-12 sm:w-12 md:h-14
+          md:w-14`,
+          isLandscape
+            ? 'bg-blue-700 hover:bg-blue-800'
+            : 'bg-red-700 hover:bg-red-800',
         ]"
         title="Selecionar equipes para exibir"
       >
@@ -148,14 +170,21 @@ const redTeamIndex = ref(0)
 const blueTeamIndex = ref(1)
 
 // Atualiza a cor do tema dinamicamente baseado na orientação
-watch(isLandscape, (landscape) => {
-  if (import.meta.client) {
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]')
-    if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', landscape ? '#3B82F6' : '#EF4444')
+watch(
+  isLandscape,
+  (landscape) => {
+    if (import.meta.client) {
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute(
+          'content',
+          landscape ? '#3B82F6' : '#EF4444',
+        )
+      }
     }
-  }
-}, { immediate: true })
+  },
+  { immediate: true },
+)
 
 const handleTeamSelection = ({
   redTeamIndex: red,
