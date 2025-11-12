@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="team"
-    @click="store.incrementTeamScore(teamIndex)"
+    @click="store.incrementTeamScore(color)"
     :class="[
       'relative flex flex-1 cursor-pointer items-center justify-center',
       bgColor,
@@ -64,21 +64,27 @@
 </template>
 
 <script setup lang="ts">
+import type { TeamColor } from '~/stores/scoreboard'
+
 const store = useScoreboardStore()
 const { isLandscape } = useOrientation()
 
 interface Props {
-  teamIndex: number
+  color: TeamColor
 }
 
 const props = defineProps<Props>()
 
-const team = computed(() => store.teams[props.teamIndex])
-const bgColor = computed(() =>
-  props.teamIndex === 0 ? 'bg-red-500' : 'bg-blue-500',
+const team = computed(() => 
+  props.color === 'red' ? store.redTeam : store.blueTeam
 )
+
+const bgColor = computed(() =>
+  props.color === 'red' ? 'bg-red-500' : 'bg-blue-500',
+)
+
 const position = computed(() => {
-  if (props.teamIndex === 0) {
+  if (props.color === 'red') {
     return isLandscape.value ? 'left' : 'top'
   } else {
     return isLandscape.value ? 'right' : 'bottom'

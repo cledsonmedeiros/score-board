@@ -8,7 +8,7 @@
     <button
       :class="[btnConfig.base, btnConfig.red]"
       :disabled="!redTeamHasScore"
-      @click="store.decrementTeamScore(0)"
+      @click="store.decrementTeamScore('red')"
     >
       <Icon
         name="heroicons:minus-20-solid"
@@ -29,7 +29,7 @@
     <button
       :class="[btnConfig.base, btnConfig.blue]"
       :disabled="!blueTeamHasScore"
-      @click="store.decrementTeamScore(1)"
+      @click="store.decrementTeamScore('blue')"
     >
       <Icon
         name="heroicons:minus-20-solid"
@@ -44,42 +44,14 @@ const store = useScoreboardStore()
 
 const btnConfig = {
   base: 'border-2 border-white flex h-14 w-14 cursor-pointer items-center justify-center rounded-full shadow-xl transition-all duration-200',
-  red: 'bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600',
-  blue: 'bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600',
+  red: 'bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 disabled:cursor-not-allowed',
+  blue: 'bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 disabled:cursor-not-allowed',
   reset: 'bg-gray-700 hover:bg-gray-600',
 }
 
-const redTeamHasScore = computed(() => {
-  if (!store.teams.length) {
-    return false
-  }
-
-  const team = store.teams[0]
-
-  if (!team) {
-    return false
-  }
-
-  return team.score > 0
-})
-
-const blueTeamHasScore = computed(() => {
-  if (!store.teams.length) {
-    return false
-  }
-
-  const team = store.teams[1]
-
-  if (!team) {
-    return false
-  }
-
-  return team.score > 0
-})
-
-const matchHasScore = computed(() => {
-  return redTeamHasScore.value || blueTeamHasScore.value
-})
+const redTeamHasScore = computed(() => store.redTeam?.score > 0)
+const blueTeamHasScore = computed(() => store.blueTeam?.score > 0)
+const matchHasScore = computed(() => redTeamHasScore.value || blueTeamHasScore.value)
 
 const handleResetScores = () => {
   if (confirm('Resetar placar?')) {

@@ -14,20 +14,31 @@ export interface Team {
   members: Player[]
 }
 
+export type TeamColor = 'red' | 'blue'
+
+export interface Teams {
+  red: Team
+  blue: Team
+}
+
 const STORAGE_KEY = 'scoreboard-players'
 const TEAMS_STORAGE_KEY = 'scoreboard-teams'
 
 export const useScoreboardStore = defineStore('scoreboard', {
   state: () => ({
     players: [] as Player[],
-    teams: [
-      { name: 'EQUIPE 1', score: 0, members: [] },
-      { name: 'EQUIPE 2', score: 0, members: [] },
-    ] as Team[],
+    teams: {
+      red: { name: 'EQUIPE 1', score: 0, members: [] },
+      blue: { name: 'EQUIPE 2', score: 0, members: [] },
+    } as Teams,
+    allTeams: [] as Team[], // Para sortear múltiplas equipes
   }),
 
   getters: {
     enabledPlayers: (state) => state.players.filter((p) => p.enabled),
+    redTeam: (state) => state.teams.red,
+    blueTeam: (state) => state.teams.blue,
+    availableTeams: (state) => state.allTeams.filter((t) => t.members.length > 0),
   },
 
   actions: {
@@ -57,13 +68,17 @@ export const useScoreboardStore = defineStore('scoreboard', {
         const stored = localStorage.getItem(TEAMS_STORAGE_KEY)
         if (stored) {
           try {
-            this.teams = JSON.parse(stored)
+            const data = JSON.parse(stored)
+            // Suporta formato antigo (array) e novo (object)
+            if (Array.isArray(data)) {
+              this.allTeams = data
+              if (data[0]) this.teams.red = data[0]
+              if (data[1]) this.teams.blue = data[1]
+            } else {
+              this.teams = data
+            }
           } catch (e) {
             console.error('Erro ao carregar equipes:', e)
-            this.teams = [
-              { name: 'EQUIPE 1', score: 0, members: [] },
-              { name: 'EQUIPE 2', score: 0, members: [] },
-            ]
           }
         }
       }
@@ -72,6 +87,12 @@ export const useScoreboardStore = defineStore('scoreboard', {
     saveTeams() {
       if (import.meta.client) {
         localStorage.setItem(TEAMS_STORAGE_KEY, JSON.stringify(this.teams))
+      }
+    },
+
+    saveAllTeams() {
+      if (import.meta.client) {
+        localStorage.setItem('scoreboard-all-teams', JSON.stringify(this.allTeams))
       }
     },
 
@@ -153,7 +174,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
 
       const completeTeams = Math.floor(available.length / playersPerTeam)
 
-      this.teams = Array.from({ length: numberOfTeams }, (_, i) => ({
+      this.allTeams = Array.from({ length: numberOfTeams }, (_, i) => ({
         name: `EQUIPE ${i + 1}`,
         score: 0,
         members: [],
@@ -166,19 +187,15 @@ export const useScoreboardStore = defineStore('scoreboard', {
 
       // Distribuir jogadores de forma balanceada pelo peso
       sortedPlayers.forEach((player, index) => {
-        // Calcular qual time deve receber o jogador
-        // Primeiros (completeTeams * playersPerTeam) jogadores são distribuídos igualmente
-        // O resto vai para o último time
         let targetTeamIndex: number
 
         if (index < completeTeams * playersPerTeam) {
           // Distribuir balanceado entre times completos
-          // Encontrar o time com menor peso total que ainda não está completo
           let minWeight = Infinity
           targetTeamIndex = 0
 
           for (let i = 0; i < completeTeams; i++) {
-            const team = this.teams[i]
+            const team = this.allTeams[i]
             if (team && team.members.length < playersPerTeam) {
               const teamWeight = team.members.reduce(
                 (sum, m) => sum + m.weight,
@@ -195,14 +212,19 @@ export const useScoreboardStore = defineStore('scoreboard', {
           targetTeamIndex = numberOfTeams - 1
         }
 
-        const team = this.teams[targetTeamIndex]
+        const team = this.allTeams[targetTeamIndex]
         if (team) {
           team.members.push({ ...player })
         }
       })
 
+      // Atualizar times red e blue com os primeiros da lista
+      if (this.allTeams[0]) this.teams.red = { ...this.allTeams[0] }
+      if (this.allTeams[1]) this.teams.blue = { ...this.allTeams[1] }
+
       this.saveTeams()
-      return this.teams
+      this.saveAllTeams()
+      return this.allTeams
     },
 
     drawRandomTeams(playersPerTeam: number) {
@@ -226,7 +248,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
 
       const completeTeams = Math.floor(available.length / playersPerTeam)
 
-      this.teams = Array.from({ length: numberOfTeams }, (_, i) => ({
+      this.allTeams = Array.from({ length: numberOfTeams }, (_, i) => ({
         name: `EQUIPE ${i + 1}`,
         score: 0,
         members: [],
@@ -237,8 +259,6 @@ export const useScoreboardStore = defineStore('scoreboard', {
 
       // Distribuir jogadores
       shuffled.forEach((player, index) => {
-        // Primeiros jogadores são distribuídos nos times completos (playersPerTeam cada)
-        // Resto vai para o último time
         let teamIndex: number
 
         if (index < completeTeams * playersPerTeam) {
@@ -249,36 +269,48 @@ export const useScoreboardStore = defineStore('scoreboard', {
           teamIndex = numberOfTeams - 1
         }
 
-        const team = this.teams[teamIndex]
+        const team = this.allTeams[teamIndex]
         if (team) {
           team.members.push({ ...player })
         }
       })
 
+      // Atualizar times red e blue com os primeiros da lista
+      if (this.allTeams[0]) this.teams.red = { ...this.allTeams[0] }
+      if (this.allTeams[1]) this.teams.blue = { ...this.allTeams[1] }
+
       this.saveTeams()
-      return this.teams
+      this.saveAllTeams()
+      return this.allTeams
     },
 
-    incrementTeamScore(teamIndex: number) {
-      const team = this.teams[teamIndex]
-      if (team) {
-        team.score++
+    incrementTeamScore(color: TeamColor) {
+      this.teams[color].score++
+      this.saveTeams()
+    },
+
+    decrementTeamScore(color: TeamColor) {
+      if (this.teams[color].score > 0) {
+        this.teams[color].score--
         this.saveTeams()
       }
     },
 
-    decrementTeamScore(teamIndex: number) {
-      const team = this.teams[teamIndex]
-      if (team && team.score > 0) {
-        team.score--
-        this.saveTeams()
-      }
+    setSelectedTeam(color: TeamColor, team: Team) {
+      this.teams[color] = { ...team }
+      this.saveTeams()
+    },
+
+    swapSelectedTeams() {
+      const temp = { ...this.teams.red }
+      this.teams.red = { ...this.teams.blue }
+      this.teams.blue = temp
+      this.saveTeams()
     },
 
     resetScores() {
-      this.teams.forEach((team) => {
-        team.score = 0
-      })
+      this.teams.red.score = 0
+      this.teams.blue.score = 0
       this.saveTeams()
     },
 

@@ -66,7 +66,7 @@
 
       <!-- Botão de Selecionar Equipes -->
       <button
-        v-if="store.teams.filter((t) => t.members.length > 0).length > 2"
+        v-if="store.availableTeams.length > 2"
         @click="showSelectorModal = true"
         :class="[
           `flex h-10 w-10 cursor-pointer items-center justify-center
@@ -87,16 +87,16 @@
 
     <!-- Container dos Placares -->
     <div class="flex h-dvh w-full portrait:flex-col landscape:flex-row">
-      <!-- Equipe 1 -->
-      <TeamScore :team-index="redTeamIndex" />
+      <!-- Equipe Vermelha -->
+      <TeamScore color="red" />
 
       <!-- ScoreControl no Centro -->
       <ScaleTransition>
         <ScoreControl />
       </ScaleTransition>
 
-      <!-- Equipe 2 -->
-      <TeamScore :team-index="blueTeamIndex" />
+      <!-- Equipe Azul -->
+      <TeamScore color="blue" />
     </div>
 
     <!-- Modal de Sorteio -->
@@ -109,18 +109,14 @@
     <!-- Modal de Visualização -->
     <ViewTeamsModal
       v-if="showViewModal"
-      :teams="store.teams"
+      :teams="store.allTeams"
       @close="showViewModal = false"
     />
 
     <!-- Modal de Seleção de Equipes -->
     <TeamSelectorModal
       v-if="showSelectorModal"
-      :teams="store.teams"
-      :red-team-index="redTeamIndex"
-      :blue-team-index="blueTeamIndex"
       @close="showSelectorModal = false"
-      @confirm="handleTeamSelection"
     />
   </div>
 </template>
@@ -132,9 +128,6 @@ const { isLandscape } = useOrientation()
 const showDrawModal = ref(false)
 const showViewModal = ref(false)
 const showSelectorModal = ref(false)
-
-const redTeamIndex = ref(0)
-const blueTeamIndex = ref(1)
 
 // Atualiza a cor do tema dinamicamente baseado na orientação
 watch(
@@ -152,16 +145,4 @@ watch(
   },
   { immediate: true },
 )
-
-const handleTeamSelection = ({
-  redTeamIndex: red,
-  blueTeamIndex: blue,
-}: {
-  redTeamIndex: number
-  blueTeamIndex: number
-}) => {
-  redTeamIndex.value = red
-  blueTeamIndex.value = blue
-  store.resetScores()
-}
 </script>
