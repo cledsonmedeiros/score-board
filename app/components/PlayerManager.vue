@@ -3,47 +3,46 @@
     <!-- Container centralizado -->
     <div class="w-full max-w-5xl space-y-6">
       <!-- Formulário de Adição -->
-      <div class="rounded-lg bg-white p-4 shadow">
-        <h2 class="mb-4 text-lg font-semibold text-gray-800">
-          Adicionar Jogador
-        </h2>
+      <div class="rounded-lg bg-white p-3 shadow md:p-4">
         <form
           @submit.prevent="handleAddPlayer"
-          class="flex flex-col gap-4 md:flex-row"
+          class="flex flex-col gap-2 md:flex-row md:items-end md:gap-3"
         >
           <div class="flex-1">
-            <label class="mb-1 block text-sm font-medium text-gray-700"
+            <label class="mb-1 block text-xs font-medium text-gray-700"
               >Nome</label
             >
             <input
               v-model="newPlayerName"
               type="text"
-              placeholder="Digite o nome do jogador"
-              class="w-full rounded-lg border border-gray-300 px-4 py-2
+              placeholder="Nome do jogador"
+              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
                 focus:border-blue-500 focus:outline-none focus:ring-2
                 focus:ring-blue-500"
               required
             />
           </div>
           <div class="shrink-0">
-            <label class="mb-1 block text-sm font-medium text-gray-700"
-              >Nível (1-5 estrelas)</label
+            <label class="mb-1 block text-xs font-medium text-gray-700"
+              >Nível</label
             >
             <div
-              class="flex h-[42px] items-center rounded-lg border
+              class="flex h-[38px] items-center rounded-lg border
                 border-gray-300 bg-white px-3"
             >
               <StarRating
                 :model-value="newPlayerWeight"
                 @update="newPlayerWeight = $event"
+                size="sm"
               />
             </div>
           </div>
-          <div class="flex items-end">
+          <div class="flex">
             <button
               type="submit"
-              class="w-full rounded-lg bg-blue-600 px-6 py-2 font-semibold
-                text-white transition-colors hover:bg-blue-700 md:w-auto"
+              class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm
+                font-semibold text-white transition-colors hover:bg-blue-700
+                md:w-auto"
             >
               Adicionar
             </button>
@@ -68,8 +67,7 @@
         </div>
 
         <div
-          class="max-h-[calc(100dvh-500px)] overflow-y-auto overflow-x-hidden
-            pb-20 md:pb-24"
+          class="max-h-[calc(100dvh-500px)] overflow-y-auto overflow-x-hidden"
         >
           <div v-if="filteredPlayers.length === 0" class="p-8 text-center">
             <p class="text-gray-500">
