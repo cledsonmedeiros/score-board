@@ -86,25 +86,17 @@
     </div>
 
     <!-- Container dos Placares -->
-    <div class="flex h-full w-full portrait:flex-col landscape:flex-row">
+    <div class="flex h-dvh w-full portrait:flex-col landscape:flex-row">
       <!-- Equipe 1 -->
-      <TeamScore
-        :team-index="redTeamIndex"
-        :position="isLandscape ? 'left' : 'top'"
-        bg-color="bg-red-500"
-      />
+      <TeamScore :team-index="redTeamIndex" />
 
-      <!-- Botão Reset no Centro -->
+      <!-- ScoreControl no Centro -->
       <ScaleTransition>
         <ScoreControl />
       </ScaleTransition>
 
       <!-- Equipe 2 -->
-      <TeamScore
-        :team-index="blueTeamIndex"
-        :position="isLandscape ? 'right' : 'bottom'"
-        bg-color="bg-blue-500"
-      />
+      <TeamScore :team-index="blueTeamIndex" />
     </div>
 
     <!-- Modal de Sorteio -->

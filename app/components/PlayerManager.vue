@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-full w-full flex-col items-center p-3 md:p-6">
+  <div class="flex h-dvh w-full flex-col items-center p-3 md:p-6">
     <!-- Container centralizado -->
     <div class="w-full max-w-5xl space-y-6">
       <!-- Formulário de Adição -->
