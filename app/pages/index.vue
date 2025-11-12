@@ -153,7 +153,7 @@ watch(
       if (metaThemeColor) {
         metaThemeColor.setAttribute(
           'content',
-          landscape ? '#EF4444' : '#3B82F6',
+          landscape ? '#3B82F6' : '#EF4444',
         )
       }
     }

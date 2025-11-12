@@ -65,18 +65,25 @@
 
 <script setup lang="ts">
 const store = useScoreboardStore()
+const { isLandscape } = useOrientation()
 
 interface Props {
   teamIndex: number
-  position: 'top' | 'bottom' | 'left' | 'right'
-  bgColor?: string
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  bgColor: 'bg-blue-500',
-})
+const props = defineProps<Props>()
 
 const team = computed(() => store.teams[props.teamIndex])
+const bgColor = computed(() =>
+  props.teamIndex === 0 ? 'bg-red-500' : 'bg-blue-500',
+)
+const position = computed(() => {
+  if (props.teamIndex === 0) {
+    return isLandscape.value ? 'left' : 'top'
+  } else {
+    return isLandscape.value ? 'right' : 'bottom'
+  }
+})
 </script>
 
 <style scoped>

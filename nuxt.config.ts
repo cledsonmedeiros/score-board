@@ -98,11 +98,11 @@ export default defineNuxtConfig({
           name: 'twitter:image:alt',
           content: 'ScoreBoard - Sistema de Placar Digital',
         },
-        // Theme color
-        {
-          name: 'theme-color',
-          content: '#EF4444',
-        },
+        // // Theme color
+        // {
+        //   name: 'theme-color',
+        //   content: '#EF4444',
+        // },
       ],
       link: [
         {
