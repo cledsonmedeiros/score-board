@@ -26,7 +26,7 @@
 
       <!-- Botão de Refazer Sorteio -->
       <button
-        v-if="store.teams[0]?.members && store.teams[0].members.length > 0"
+        v-if="store.allTeams.length > 0"
         @click="showDrawModal = true"
         :class="[
           `flex h-10 w-10 cursor-pointer items-center justify-center
@@ -46,7 +46,7 @@
 
       <!-- Botão de Ver Equipes -->
       <button
-        v-if="store.teams[0]?.members && store.teams[0].members.length > 0"
+        v-if="store.allTeams.length > 0"
         @click="showViewModal = true"
         :class="[
           `flex h-10 w-10 cursor-pointer items-center justify-center

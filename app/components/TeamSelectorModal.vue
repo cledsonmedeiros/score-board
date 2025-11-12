@@ -137,29 +137,39 @@ import type { Team, TeamColor } from '~/stores/scoreboard'
 
 const store = useScoreboardStore()
 
-defineEmits<{
+const emit = defineEmits<{
   close: []
 }>()
 
-const localRedTeam = ref<Team | null>(store.teams.red)
-const localBlueTeam = ref<Team | null>(store.teams.blue)
+const localRedTeam = ref<Team | null>(null)
+const localBlueTeam = ref<Team | null>(null)
 
-// Retorna a cor do time
+// Inicializar com os times atuais comparando pelo nome
+onMounted(() => {
+  const currentRed = store.teams.red
+  const currentBlue = store.teams.blue
+  
+  // Encontrar os times correspondentes em allTeams
+  localRedTeam.value = store.allTeams.find(t => t.name === currentRed.name) || null
+  localBlueTeam.value = store.allTeams.find(t => t.name === currentBlue.name) || null
+})
+
+// Retorna a cor do time comparando pelo nome
 const getTeamColor = (team: Team): TeamColor | null => {
-  if (team === localRedTeam.value) return 'red'
-  if (team === localBlueTeam.value) return 'blue'
+  if (localRedTeam.value && team.name === localRedTeam.value.name) return 'red'
+  if (localBlueTeam.value && team.name === localBlueTeam.value.name) return 'blue'
   return null
 }
 
 const handleTeamClick = (team: Team) => {
   // Se o time clicado já é vermelho, troca para azul
-  if (localRedTeam.value === team) {
+  if (localRedTeam.value && team.name === localRedTeam.value.name) {
     const temp = localRedTeam.value
     localRedTeam.value = localBlueTeam.value
     localBlueTeam.value = temp
   }
   // Se o time clicado já é azul, troca para vermelho
-  else if (localBlueTeam.value === team) {
+  else if (localBlueTeam.value && team.name === localBlueTeam.value.name) {
     const temp = localBlueTeam.value
     localBlueTeam.value = localRedTeam.value
     localRedTeam.value = temp
@@ -174,5 +184,6 @@ const handleConfirm = () => {
   if (localRedTeam.value) store.setSelectedTeam('red', localRedTeam.value)
   if (localBlueTeam.value) store.setSelectedTeam('blue', localBlueTeam.value)
   store.resetScores()
+  emit('close')
 }
 </script>
