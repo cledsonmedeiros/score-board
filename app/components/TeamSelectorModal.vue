@@ -32,81 +32,79 @@
         </p>
       </div>
 
-      <!-- Seletores -->
-      <div v-else class="space-y-4">
-        <!-- Seletor Vermelho -->
-        <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700">
-            Equipe Vermelha (Superior)
-          </label>
-          <select
-            v-model="localRedTeamIndex"
-            class="w-full rounded-lg border border-gray-300 px-4 py-2
-              focus:border-red-500 focus:outline-none focus:ring-2
-              focus:ring-red-500"
-          >
-            <option
+      <!-- Lista de Times -->
+      <div v-else>
+        <p class="mb-3 text-sm text-gray-600">
+          Toque em um time para selecionar. Toque novamente para alternar a cor.
+        </p>
+        <div class="max-h-[60dvh] overflow-y-auto overflow-x-hidden pr-1">
+          <div class="grid gap-2">
+            <button
               v-for="(team, index) in availableTeams"
               :key="index"
-              :value="index"
-              :disabled="index === localBlueTeamIndex"
+              @click="handleTeamClick(index)"
+              class="group relative w-full touch-manipulation rounded-lg border-2
+                p-3 text-left transition-all active:scale-[0.98]"
+              :class="[
+                localRedTeamIndex === index
+                  ? 'border-red-500 bg-red-50 shadow-md'
+                  : localBlueTeamIndex === index
+                    ? 'border-blue-500 bg-blue-50 shadow-md'
+                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50',
+              ]"
             >
-              {{ team.name }} ({{ team.members.length }}
-              {{ team.members.length === 1 ? 'jogador' : 'jogadores' }})
-            </option>
-          </select>
+              <!-- Indicador de cor -->
+              <div
+                v-if="localRedTeamIndex === index || localBlueTeamIndex === index"
+                class="absolute right-2 top-2 flex items-center gap-1"
+              >
+                <span
+                  class="text-xs font-semibold"
+                  :class="
+                    localRedTeamIndex === index ? 'text-red-700' : 'text-blue-700'
+                  "
+                >
+                  {{ localRedTeamIndex === index ? 'Vermelho' : 'Azul' }}
+                </span>
+                <div
+                  class="flex h-6 w-6 items-center justify-center rounded-full"
+                  :class="
+                    localRedTeamIndex === index ? 'bg-red-600' : 'bg-blue-600'
+                  "
+                >
+                  <Icon name="heroicons:check" class="h-4 w-4 text-white" />
+                </div>
+              </div>
 
-          <!-- Membros da equipe vermelha -->
-          <div
-            v-if="availableTeams[localRedTeamIndex]"
-            class="mt-2 rounded-lg border-2 border-red-300 bg-red-50 p-3"
-          >
-            <div class="mb-1 text-xs font-semibold text-red-800">Membros:</div>
-            <div class="flex flex-wrap gap-2">
-              <PlayerBadge
-                v-for="member in availableTeams[localRedTeamIndex]!.members"
-                :key="member.id"
-                :player="member"
-              />
-            </div>
-          </div>
-        </div>
+              <!-- Nome e contagem -->
+              <div class="mb-2 flex items-baseline gap-2 pr-24">
+                <span
+                  class="text-base font-semibold"
+                  :class="
+                    localRedTeamIndex === index
+                      ? 'text-red-900'
+                      : localBlueTeamIndex === index
+                        ? 'text-blue-900'
+                        : 'text-gray-900'
+                  "
+                  >{{ team.name }}</span
+                >
+                <span class="text-xs text-gray-500">
+                  {{ team.members.length }}
+                  {{ team.members.length === 1 ? 'jogador' : 'jogadores' }}
+                </span>
+              </div>
 
-        <!-- Seletor Azul -->
-        <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700">
-            Equipe Azul (Inferior)
-          </label>
-          <select
-            v-model="localBlueTeamIndex"
-            class="w-full rounded-lg border border-gray-300 px-4 py-2
-              focus:border-blue-500 focus:outline-none focus:ring-2
-              focus:ring-blue-500"
-          >
-            <option
-              v-for="(team, index) in availableTeams"
-              :key="index"
-              :value="index"
-              :disabled="index === localRedTeamIndex"
-            >
-              {{ team.name }} ({{ team.members.length }}
-              {{ team.members.length === 1 ? 'jogador' : 'jogadores' }})
-            </option>
-          </select>
-
-          <!-- Membros da equipe azul -->
-          <div
-            v-if="availableTeams[localBlueTeamIndex]"
-            class="mt-2 rounded-lg border-2 border-blue-300 bg-blue-50 p-3"
-          >
-            <div class="mb-1 text-xs font-semibold text-blue-800">Membros:</div>
-            <div class="flex flex-wrap gap-2">
-              <PlayerBadge
-                v-for="member in availableTeams[localBlueTeamIndex]!.members"
-                :key="member.id"
-                :player="member"
-              />
-            </div>
+              <!-- Membros -->
+              <div class="flex flex-wrap gap-1.5">
+                <PlayerBadge
+                  v-for="member in team.members"
+                  :key="member.id"
+                  :player="member"
+                  size="sm"
+                />
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -154,6 +152,23 @@ const availableTeams = computed(() =>
 
 const localRedTeamIndex = ref(props.redTeamIndex)
 const localBlueTeamIndex = ref(props.blueTeamIndex)
+
+const handleTeamClick = (index: number) => {
+  // Se o time clicado já é vermelho, troca para azul
+  if (localRedTeamIndex.value === index) {
+    localRedTeamIndex.value = localBlueTeamIndex.value
+    localBlueTeamIndex.value = index
+  }
+  // Se o time clicado já é azul, troca para vermelho
+  else if (localBlueTeamIndex.value === index) {
+    localBlueTeamIndex.value = localRedTeamIndex.value
+    localRedTeamIndex.value = index
+  }
+  // Se o time não está selecionado, seleciona como vermelho
+  else {
+    localRedTeamIndex.value = index
+  }
+}
 
 const handleConfirm = () => {
   emit('confirm', {
