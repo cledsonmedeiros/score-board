@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen w-screen overflow-hidden select-none">
+  <div class="flex h-dvh w-screen overflow-hidden select-none">
     <!-- PWA Update Prompt -->
     <PWAUpdatePrompt />
 

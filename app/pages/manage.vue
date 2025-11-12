@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen flex-col">
+  <div class="flex h-dvh flex-col">
     <!-- Header com navegação -->
     <header class="border-b bg-white shadow-sm">
       <div class="flex items-center justify-between p-3 md:p-4">

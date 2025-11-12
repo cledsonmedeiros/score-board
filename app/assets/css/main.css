@@ -7,6 +7,8 @@ html {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  /* Usa viewport dinâmico que se ajusta com barra do Safari */
+  height: 100dvh;
   /* Previne zoom por duplo clique no iOS */
   touch-action: manipulation;
   -webkit-user-select: none;
