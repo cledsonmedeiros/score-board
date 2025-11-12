@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-full flex-col items-center bg-gray-50 p-3 md:p-6">
+  <div class="flex h-full w-full flex-col items-center p-3 md:p-6">
     <!-- Container centralizado -->
     <div class="w-full max-w-5xl space-y-6">
       <!-- Formulário de Adição -->
@@ -68,7 +68,7 @@
         </div>
 
         <div
-          class="max-h-[calc(100vh-500px)] overflow-y-auto overflow-x-hidden
+          class="max-h-[calc(100dvh-500px)] overflow-y-auto overflow-x-hidden
             pb-20 md:pb-24"
         >
           <div v-if="filteredPlayers.length === 0" class="p-8 text-center">

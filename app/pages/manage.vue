@@ -17,7 +17,7 @@
     </header>
 
     <!-- Conteúdo -->
-    <div class="flex flex-1 overflow-hidden">
+    <div class="container mx-auto flex justify-center px-2 sm:px-4 md:px-6">
       <PlayerManager />
     </div>
 

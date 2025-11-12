@@ -4,7 +4,7 @@
     @click.self="$emit('close')"
   >
     <div
-      class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white
+      class="max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white
         p-4 shadow-2xl md:p-6"
       @click.stop
     >

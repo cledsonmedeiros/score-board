@@ -1,8 +1,5 @@
 <template>
   <div class="flex h-dvh w-screen select-none overflow-hidden">
-    <!-- PWA Update Prompt -->
-    <PWAUpdatePrompt />
-
     <!-- Botões de Ação -->
     <div
       class="absolute right-2 top-2 z-20 flex sm:right-4 sm:top-4
@@ -106,15 +103,7 @@
 
       <!-- Botão Reset no Centro -->
       <ScaleTransition>
-        <ResetButton
-          v-if="
-            store.teams[redTeamIndex] &&
-            store.teams[blueTeamIndex] &&
-            (store.teams[redTeamIndex]!.score > 0 ||
-              store.teams[blueTeamIndex]!.score > 0)
-          "
-          @reset="store.resetScores"
-        />
+        <ScoreControl />
       </ScaleTransition>
 
       <!-- Equipe 2 -->

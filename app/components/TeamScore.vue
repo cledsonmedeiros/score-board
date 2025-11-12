@@ -57,32 +57,6 @@
     >
       {{ score }}
     </div>
-
-    <!-- Botão Decrementar -->
-    <ScaleTransition>
-      <button
-        v-if="score > 0"
-        @click.stop="$emit('decrement')"
-        :class="[
-          `absolute flex h-10 w-10 cursor-pointer items-center justify-center
-          rounded-full border-none shadow-xl sm:h-12 sm:w-12 md:h-14 md:w-14`,
-          position === 'top'
-            ? 'bottom-2 left-2 sm:bottom-4 sm:left-4 md:bottom-6 md:left-6'
-            : position === 'bottom'
-              ? 'left-2 top-2 sm:left-4 sm:top-4 md:left-6 md:top-6'
-              : position === 'left'
-                ? 'right-2 top-2 sm:right-4 sm:top-4 md:right-6 md:top-6'
-                : 'left-2 top-2 sm:left-4 sm:top-4 md:left-6 md:top-6',
-          buttonBgColor,
-          buttonHoverColor,
-        ]"
-      >
-        <Icon
-          name="heroicons:minus-20-solid"
-          class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8"
-        />
-      </button>
-    </ScaleTransition>
   </div>
 </template>
 

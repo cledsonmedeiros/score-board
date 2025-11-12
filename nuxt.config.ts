@@ -13,75 +13,7 @@ export default defineNuxtConfig({
     '@nuxt/fonts',
     '@nuxt/icon',
     '@pinia/nuxt',
-    '@vite-pwa/nuxt',
   ],
-
-  pwa: {
-    registerType: 'prompt',
-    manifest: {
-      name: 'ScoreBoard',
-      short_name: 'ScoreBoard',
-      description:
-        'Sistema completo de placar digital e gerenciamento de equipes',
-      theme_color: '#EF4444',
-      background_color: '#ffffff',
-      display: 'standalone',
-      start_url: '/',
-      scope: '/',
-      icons: [
-        {
-          src: '/icon-192x192.png',
-          sizes: '192x192',
-          type: 'image/png',
-        },
-        {
-          src: '/icon-512x512.png',
-          sizes: '512x512',
-          type: 'image/png',
-        },
-        {
-          src: '/icon-512x512.png',
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'any maskable',
-        },
-      ],
-    },
-    workbox: {
-      navigateFallback: '/',
-      navigateFallbackDenylist: [/^\/api\//, /\/offline\.html$/],
-      globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
-      globIgnores: ['offline.html'],
-      cleanupOutdatedCaches: true,
-      clientsClaim: true,
-      skipWaiting: true,
-      runtimeCaching: [
-        {
-          urlPattern: /^https:\/\/api\.iconify\.design\/.*/i,
-          handler: 'CacheFirst',
-          options: {
-            cacheName: 'iconify-cache',
-            expiration: {
-              maxEntries: 100,
-              maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-            },
-            cacheableResponse: {
-              statuses: [0, 200],
-            },
-          },
-        },
-      ],
-    },
-    client: {
-      installPrompt: true,
-      periodicSyncForUpdates: 3600,
-    },
-    devOptions: {
-      enabled: false,
-      suppressWarnings: true,
-      type: 'module',
-    },
-  },
 
   css: ['~/assets/css/main.css'],
   app: {
