@@ -89,16 +89,9 @@
     <div class="flex h-full w-full portrait:flex-col landscape:flex-row">
       <!-- Equipe 1 -->
       <TeamScore
-        v-if="store.teams[redTeamIndex]"
-        :team-name="store.teams[redTeamIndex]!.name"
-        :score="store.teams[redTeamIndex]!.score"
-        :members="store.teams[redTeamIndex]!.members"
+        :team-index="redTeamIndex"
         :position="isLandscape ? 'left' : 'top'"
         bg-color="bg-red-500"
-        button-bg-color="bg-red-700"
-        button-hover-color="hover:bg-red-800"
-        @increment="store.incrementTeamScore(redTeamIndex)"
-        @decrement="store.decrementTeamScore(redTeamIndex)"
       />
 
       <!-- Botão Reset no Centro -->
@@ -108,16 +101,9 @@
 
       <!-- Equipe 2 -->
       <TeamScore
-        v-if="store.teams[blueTeamIndex]"
-        :team-name="store.teams[blueTeamIndex]!.name"
-        :score="store.teams[blueTeamIndex]!.score"
-        :members="store.teams[blueTeamIndex]!.members"
+        :team-index="blueTeamIndex"
         :position="isLandscape ? 'right' : 'bottom'"
         bg-color="bg-blue-500"
-        button-bg-color="bg-blue-700"
-        button-hover-color="hover:bg-blue-800"
-        @increment="store.incrementTeamScore(blueTeamIndex)"
-        @decrement="store.decrementTeamScore(blueTeamIndex)"
       />
     </div>
 
@@ -167,7 +153,7 @@ watch(
       if (metaThemeColor) {
         metaThemeColor.setAttribute(
           'content',
-          landscape ? '#3B82F6' : '#EF4444',
+          landscape ? '#EF4444' : '#3B82F6',
         )
       }
     }

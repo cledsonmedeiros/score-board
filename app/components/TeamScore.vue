@@ -1,6 +1,7 @@
 <template>
   <div
-    @click="$emit('increment')"
+    v-if="team"
+    @click="store.incrementTeamScore(teamIndex)"
     :class="[
       'relative flex flex-1 cursor-pointer items-center justify-center',
       bgColor,
@@ -16,12 +17,12 @@
           : 'bottom-4 left-0 right-0 sm:bottom-6',
       ]"
     >
-      {{ teamName }}
+      {{ team.name }}
     </h2>
 
     <!-- Membros da Equipe -->
     <div
-      v-if="members && members.length > 0"
+      v-if="team.members && team.members.length > 0"
       :class="[
         'absolute px-3 sm:px-4 md:px-8',
         position === 'top'
@@ -34,7 +35,7 @@
           md:gap-3"
       >
         <div
-          v-for="member in members"
+          v-for="member in team.members"
           :key="member.id"
           class="rounded-full bg-white/20 px-2 py-0.5 backdrop-blur-sm sm:px-3
             sm:py-1 md:px-4 md:py-1.5"
@@ -50,38 +51,50 @@
     </div>
 
     <!-- Pontuação -->
-    <div
-      class="score text-[120px] font-black leading-none text-white
-        sm:text-[200px] md:text-[320px] landscape:text-[140px]
-        landscape:sm:text-[180px]"
-    >
-      {{ score }}
-    </div>
+    <Transition name="score-change" mode="out-in">
+      <div
+        :key="team.score"
+        class="score text-[11rem] font-black leading-none text-white
+          sm:text-[12.5rem]"
+      >
+        {{ team.score }}
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { Player } from '~/stores/scoreboard'
+const store = useScoreboardStore()
 
 interface Props {
-  teamName: string
-  score: number
+  teamIndex: number
   position: 'top' | 'bottom' | 'left' | 'right'
-  members?: Player[]
   bgColor?: string
-  buttonBgColor?: string
-  buttonHoverColor?: string
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   bgColor: 'bg-blue-500',
-  buttonBgColor: 'bg-blue-700',
-  buttonHoverColor: 'hover:bg-blue-800',
-  members: () => [],
 })
 
-defineEmits<{
-  increment: []
-  decrement: []
-}>()
+const team = computed(() => store.teams[props.teamIndex])
 </script>
+
+<style scoped>
+.score-change-enter-active {
+  transition: all 0.1s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.score-change-leave-active {
+  transition: all 0.1s ease-in;
+}
+
+.score-change-enter-from {
+  transform: scale(0.5);
+  opacity: 0;
+}
+
+.score-change-leave-to {
+  transform: scale(1.5);
+  opacity: 0;
+}
+</style>
