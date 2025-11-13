@@ -7,7 +7,7 @@ module.exports = {
       exec_mode: 'cluster',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000,
+        PORT: 5151,
         NUXT_PUBLIC_SOCKET_URL: 'https://socket.scoreboard.acoes.cc',
       },
       error_file: './logs/nuxt-error.log',
@@ -22,7 +22,7 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        SOCKET_PORT: 3001,
+        SOCKET_PORT: 5152,
       },
       error_file: './logs/socket-error.log',
       out_file: './logs/socket-out.log',
