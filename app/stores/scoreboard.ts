@@ -284,6 +284,23 @@ export const useScoreboardStore = defineStore('scoreboard', {
       return this.allTeams
     },
 
+    saveManualTeams(teams: Team[]) {
+      // Reseta scores das equipes manuais
+      const teamsWithScores = teams.map((team) => ({
+        ...team,
+        score: 0,
+      }))
+
+      this.allTeams = teamsWithScores
+
+      // Atualizar times red e blue com os primeiros da lista
+      if (this.allTeams[0]) this.teams.red = { ...this.allTeams[0] }
+      if (this.allTeams[1]) this.teams.blue = { ...this.allTeams[1] }
+
+      this.saveTeams()
+      this.saveAllTeams()
+    },
+
     incrementTeamScore(color: TeamColor) {
       this.teams[color].score++
       this.saveTeams()
@@ -312,6 +329,23 @@ export const useScoreboardStore = defineStore('scoreboard', {
       this.teams.red.score = 0
       this.teams.blue.score = 0
       this.saveTeams()
+    },
+
+    clearAllData() {
+      // Reseta o estado
+      this.players = []
+      this.teams = {
+        red: { name: 'EQUIPE 1', score: 0, members: [] },
+        blue: { name: 'EQUIPE 2', score: 0, members: [] },
+      }
+      this.allTeams = []
+
+      // Limpa o localStorage
+      if (import.meta.client) {
+        localStorage.removeItem(STORAGE_KEY)
+        localStorage.removeItem(TEAMS_STORAGE_KEY)
+        localStorage.removeItem('scoreboard-all-teams')
+      }
     },
 
     // Initialize

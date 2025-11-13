@@ -7,16 +7,29 @@
           <h1 class="text-lg font-bold text-gray-800 md:text-xl">
             Gerenciamento de Equipes
           </h1>
-          <NuxtLink
-            to="/"
-            class="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2
-              text-sm font-semibold text-white shadow-sm transition-all
-              hover:bg-blue-700 active:scale-95 active:bg-blue-800 md:px-4"
-          >
-            <Icon name="heroicons:chart-bar-square" class="h-4 w-4" />
-            <span class="hidden sm:inline">Ir para </span>
-            <span>Placar</span>
-          </NuxtLink>
+          <div class="flex gap-2">
+            <button
+              @click="handleClearAll"
+              class="flex items-center gap-1.5 rounded-lg border-2
+                border-red-300 bg-white px-3 py-2 text-sm font-semibold
+                text-red-600 shadow-sm transition-all hover:bg-red-50
+                active:scale-95 active:bg-red-100"
+              title="Limpar todos os dados"
+            >
+              <Icon name="heroicons:trash" class="h-4 w-4" />
+              <span class="hidden sm:inline">Limpar Tudo</span>
+            </button>
+            <NuxtLink
+              to="/"
+              class="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2
+                text-sm font-semibold text-white shadow-sm transition-all
+                hover:bg-blue-700 active:scale-95 active:bg-blue-800 md:px-4"
+            >
+              <Icon name="heroicons:chart-bar-square" class="h-4 w-4" />
+              <span class="hidden sm:inline">Ir para </span>
+              <span>Placar</span>
+            </NuxtLink>
+          </div>
         </div>
 
         <!-- Botão de sortear integrado ao header -->
@@ -54,5 +67,20 @@ const showDrawModal = ref(false)
 const handleTeamsDrawn = () => {
   // Redirecionar para a página do placar após sortear
   navigateTo('/')
+}
+
+const handleClearAll = () => {
+  const confirmed = confirm(
+    'Tem certeza que deseja limpar TODOS os dados?\n\n' +
+    'Isso irá remover:\n' +
+    '• Todos os jogadores\n' +
+    '• Todas as equipes formadas\n' +
+    '• Todos os placares\n\n' +
+    'Esta ação não pode ser desfeita!'
+  )
+  
+  if (confirmed) {
+    store.clearAllData()
+  }
 }
 </script>
