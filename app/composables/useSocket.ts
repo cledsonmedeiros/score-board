@@ -22,7 +22,10 @@ export const useSocket = () => {
       return
     }
 
-    const socketUrl = (config.public.socketUrl as string) || 'http://localhost:3000'
+    // Sempre usa servidor Socket.IO standalone em localhost:3001
+    const socketUrl = (config.public.socketUrl as string) || 'http://localhost:3001'
+
+    console.log('Socket.IO connecting to:', socketUrl)
 
     socket = io(socketUrl, {
       transports: ['polling', 'websocket'],

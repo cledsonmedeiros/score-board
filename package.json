@@ -5,8 +5,15 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
+    "dev:socket": "node server/socket-server.mjs",
+    "dev:all": "concurrently \"pnpm dev\" \"pnpm dev:socket\"",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
+    "preview:socket": "SOCKET_PORT=3001 node server/socket-server.mjs",
+    "preview:all": "concurrently \"pnpm preview\" \"pnpm preview:socket\"",
+    "start": "node .output/server/index.mjs",
+    "start:socket": "node server/socket-server.mjs",
+    "start:all": "concurrently \"pnpm start\" \"pnpm start:socket\"",
     "postinstall": "nuxt prepare",
     "format": "prettier --write ."
   },
@@ -26,6 +33,7 @@
     "@iconify-json/heroicons": "^1.2.3",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@types/express": "^5.0.5",
+    "concurrently": "^9.2.1",
     "express": "^5.1.0",
     "prettier": "^3.6.2",
     "prettier-plugin-classnames": "^0.8.5",
