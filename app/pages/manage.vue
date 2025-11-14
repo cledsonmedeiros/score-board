@@ -61,7 +61,7 @@
           </h1>
           <div class="flex gap-2">
             <button
-              v-if="socket.isHost.value"
+              v-if="!socket.connected.value || socket.isHost.value"
               @click="handleClearAll"
               class="flex items-center gap-1.5 rounded-lg border-2
                 border-red-300 bg-white px-3 py-2 text-sm font-semibold
@@ -87,7 +87,7 @@
 
         <!-- Botão de sortear integrado ao header -->
         <button
-          v-if="socket.isHost.value && store.enabledPlayers.length >= 2"
+          v-if="(!socket.connected.value || socket.isHost.value) && store.enabledPlayers.length >= 2"
           @click="showDrawModal = true"
           class="flex w-full items-center justify-center gap-2 rounded-lg
             bg-green-600 px-4 py-3 text-sm font-semibold text-white

@@ -6,7 +6,7 @@
         portrait:flex-col portrait:gap-2 landscape:flex-row landscape:gap-2"
     >
       <!-- Botão de Gerenciamento -->
-      <NuxtLink v-if="socket.isHost.value" to="/manage">
+      <NuxtLink v-if="!socket.connected.value || socket.isHost.value" to="/manage">
         <button
           :class="[
             `flex h-10 w-10 cursor-pointer items-center justify-center
@@ -26,7 +26,7 @@
 
       <!-- Botão de Refazer Sorteio -->
       <button
-        v-if="socket.isHost.value && store.allTeams.length > 0"
+        v-if="(!socket.connected.value || socket.isHost.value) && store.allTeams.length > 0"
         @click="showDrawModal = true"
         :class="[
           `flex h-10 w-10 cursor-pointer items-center justify-center

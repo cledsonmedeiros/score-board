@@ -68,7 +68,7 @@ export const useSocket = () => {
 
   const createRoom = async (hostName: string): Promise<string> => {
     return new Promise((resolve, reject) => {
-      if (!socket || !socketStore.connected) {
+      if (!socket) {
         reject(new Error('Modo offline: funcionalidade de salas não disponível'))
         return
       }
@@ -95,7 +95,7 @@ export const useSocket = () => {
     participantName: string,
   ): Promise<RoomData> => {
     return new Promise((resolve, reject) => {
-      if (!socket || !socketStore.connected) {
+      if (!socket) {
         reject(new Error('Modo offline: funcionalidade de salas não disponível'))
         return
       }
