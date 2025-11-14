@@ -6,7 +6,7 @@
         portrait:flex-col portrait:gap-2 landscape:flex-row landscape:gap-2"
     >
       <!-- Botão de Gerenciamento -->
-      <NuxtLink v-if="socket.isHost.value" to="/manage">
+      <NuxtLink v-if="!socket.connected.value || socket.isHost.value" to="/manage">
         <button
           :class="[
             `flex h-10 w-10 cursor-pointer items-center justify-center
@@ -26,7 +26,7 @@
 
       <!-- Botão de Refazer Sorteio -->
       <button
-        v-if="socket.isHost.value && store.allTeams.length > 0"
+        v-if="(!socket.connected.value || socket.isHost.value) && store.allTeams.length > 0"
         @click="showDrawModal = true"
         :class="[
           `flex h-10 w-10 cursor-pointer items-center justify-center
@@ -103,7 +103,7 @@
     <TeamDrawModal
       v-if="showDrawModal"
       @close="showDrawModal = false"
-      @drawn="showDrawModal = false"
+      @drawn="handleTeamsDrawn"
     />
 
     <!-- Modal de Visualização -->
@@ -131,6 +131,18 @@ const showDrawModal = ref(false)
 const showViewModal = ref(false)
 const showSelectorModal = ref(false)
 
+const handleTeamsDrawn = async () => {
+  // Aguarda a próxima atualização do DOM para garantir que o store foi atualizado
+  await nextTick()
+  
+  // Sincroniza as equipes sorteadas com todos os participantes (se conectado)
+  if (socket.connected.value && socket.isHost.value) {
+    socket.syncTeams(store.teams, store.allTeams)
+  }
+  
+  showDrawModal.value = false
+}
+
 onMounted(() => {
   socket.connect()
 
@@ -153,25 +165,24 @@ onMounted(() => {
     alert(data.message)
     router.push('/')
   })
-
-  // Se não estiver em uma sala, redireciona
-  if (!socket.roomCode.value) {
-    router.push('/')
-  }
 })
 
-// Watch para sincronizar scores com a sala
+// Watch para sincronizar scores com a sala (apenas se conectado)
 watch(
   () => store.teams.red.score,
   (score) => {
-    socket.syncScore('red', score)
+    if (socket.connected.value) {
+      socket.syncScore('red', score)
+    }
   },
 )
 
 watch(
   () => store.teams.blue.score,
   (score) => {
-    socket.syncScore('blue', score)
+    if (socket.connected.value) {
+      socket.syncScore('blue', score)
+    }
   },
 )
 

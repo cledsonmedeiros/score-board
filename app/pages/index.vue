@@ -153,10 +153,23 @@
         class="rounded-xl bg-white/20 p-4 text-center text-sm text-white
           backdrop-blur-sm"
       >
-        <p class="font-medium">
+        <p v-if="socket.connected.value" class="font-medium">
           💡 Crie uma sala e compartilhe o link com seus amigos!
         </p>
+        <p v-else class="font-medium">
+          ⚠️ Modo Offline - Use o placar localmente sem salas interativas
+        </p>
       </div>
+
+      <!-- Botão de usar offline -->
+      <button
+        v-if="!socket.connected.value"
+        @click="router.push('/manage')"
+        class="w-full rounded-xl bg-white/20 p-4 text-center font-semibold
+          text-white backdrop-blur-sm transition-colors hover:bg-white/30"
+      >
+        🎮 Usar Placar Offline
+      </button>
     </div>
   </div>
 </template>
