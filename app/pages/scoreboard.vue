@@ -103,7 +103,7 @@
     <TeamDrawModal
       v-if="showDrawModal"
       @close="showDrawModal = false"
-      @drawn="showDrawModal = false"
+      @drawn="handleTeamsDrawn"
     />
 
     <!-- Modal de Visualização -->
@@ -130,6 +130,18 @@ const { isLandscape } = useOrientation()
 const showDrawModal = ref(false)
 const showViewModal = ref(false)
 const showSelectorModal = ref(false)
+
+const handleTeamsDrawn = async () => {
+  // Aguarda a próxima atualização do DOM para garantir que o store foi atualizado
+  await nextTick()
+  
+  // Sincroniza as equipes sorteadas com todos os participantes (se conectado)
+  if (socket.connected.value && socket.isHost.value) {
+    socket.syncTeams(store.teams, store.allTeams)
+  }
+  
+  showDrawModal.value = false
+}
 
 onMounted(() => {
   socket.connect()

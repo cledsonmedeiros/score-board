@@ -149,7 +149,10 @@ watch(
   { deep: true },
 )
 
-const handleTeamsDrawn = () => {
+const handleTeamsDrawn = async () => {
+  // Aguarda a próxima atualização do DOM para garantir que o store foi atualizado
+  await nextTick()
+  
   // Sincroniza as equipes sorteadas com todos os participantes (se conectado)
   if (socket.connected.value && socket.isHost.value) {
     socket.syncTeams(store.teams, store.allTeams)
