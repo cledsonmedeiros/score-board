@@ -41,6 +41,7 @@
 
 <script setup lang="ts">
 const store = useScoreboardStore()
+const socket = useSocket()
 
 const btnConfig = {
   base: 'border-2 border-white flex h-14 w-14 cursor-pointer items-center justify-center rounded-full shadow-xl transition-all duration-200',
@@ -56,6 +57,8 @@ const matchHasScore = computed(() => redTeamHasScore.value || blueTeamHasScore.v
 const handleResetScores = () => {
   if (confirm('Resetar placar?')) {
     store.resetScores()
+    // Sincroniza o reset com todos os participantes
+    socket.syncResetScores()
   }
 }
 </script>
