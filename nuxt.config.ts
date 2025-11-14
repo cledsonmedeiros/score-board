@@ -4,7 +4,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || 'http://localhost:3000',
+      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || 'http://localhost:5152',
     },
   },
 

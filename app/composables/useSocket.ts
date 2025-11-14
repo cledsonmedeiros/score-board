@@ -23,7 +23,7 @@ export const useSocket = () => {
     }
 
     // Sempre usa servidor Socket.IO standalone em localhost:3001
-    const socketUrl = (config.public.socketUrl as string) || 'http://localhost:3001'
+    const socketUrl = (config.public.socketUrl as string) || 'http://localhost:5152'
 
     console.log('Socket.IO connecting to:', socketUrl)
 
