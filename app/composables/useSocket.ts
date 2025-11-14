@@ -13,7 +13,6 @@ interface RoomData {
 let socket: Socket | null = null
 
 export const useSocket = () => {
-  const config = useRuntimeConfig()
   const socketStore = useSocketStore()
 
   const connect = () => {
@@ -23,7 +22,7 @@ export const useSocket = () => {
     }
 
     // Sempre usa servidor Socket.IO standalone em localhost:3001
-    const socketUrl = (config.public.socketUrl as string) || 'http://localhost:5152'
+    const socketUrl = 'https://socket.scoreboard.acoes.cc'
 
     console.log('Socket.IO connecting to:', socketUrl)
 

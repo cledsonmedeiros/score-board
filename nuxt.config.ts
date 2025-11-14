@@ -2,12 +2,6 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
 
-  runtimeConfig: {
-    public: {
-      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || 'http://localhost:5152',
-    },
-  },
-
   devtools: {
     enabled: true,
 
