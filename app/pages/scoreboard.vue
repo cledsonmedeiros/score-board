@@ -153,25 +153,24 @@ onMounted(() => {
     alert(data.message)
     router.push('/')
   })
-
-  // Se não estiver em uma sala, redireciona
-  if (!socket.roomCode.value) {
-    router.push('/')
-  }
 })
 
-// Watch para sincronizar scores com a sala
+// Watch para sincronizar scores com a sala (apenas se conectado)
 watch(
   () => store.teams.red.score,
   (score) => {
-    socket.syncScore('red', score)
+    if (socket.connected.value) {
+      socket.syncScore('red', score)
+    }
   },
 )
 
 watch(
   () => store.teams.blue.score,
   (score) => {
-    socket.syncScore('blue', score)
+    if (socket.connected.value) {
+      socket.syncScore('blue', score)
+    }
   },
 )
 

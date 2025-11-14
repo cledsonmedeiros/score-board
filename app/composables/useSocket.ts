@@ -13,39 +13,48 @@ interface RoomData {
 let socket: Socket | null = null
 
 export const useSocket = () => {
+  const config = useRuntimeConfig()
   const socketStore = useSocketStore()
 
   const connect = () => {
+    // Se já está conectado, não tenta novamente
     if (socket?.connected) {
       socketStore.setConnected(true)
       return
     }
 
     // Sempre usa servidor Socket.IO standalone em localhost:3001
-    const socketUrl = 'https://socket.scoreboard.acoes.cc'
+    const socketUrl = (config.public.socketUrl as string) || 'http://localhost:3001'
 
     console.log('Socket.IO connecting to:', socketUrl)
 
-    socket = io(socketUrl, {
-      transports: ['polling', 'websocket'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
-    })
+    try {
+      socket = io(socketUrl, {
+        transports: ['polling', 'websocket'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5,
+        timeout: 5000, // 5 segundos timeout
+      })
 
-    socket.on('connect', () => {
-      socketStore.setConnected(true)
-      console.log('✅ Connected to Socket.IO server')
-    })
+      socket.on('connect', () => {
+        socketStore.setConnected(true)
+        console.log('✅ Connected to Socket.IO server')
+      })
 
-    socket.on('disconnect', () => {
+      socket.on('disconnect', () => {
+        socketStore.setConnected(false)
+        console.log('❌ Disconnected from Socket.IO server')
+      })
+
+      socket.on('connect_error', (error) => {
+        console.warn('⚠️  Socket connection error (offline mode):', error.message)
+        socketStore.setConnected(false)
+      })
+    } catch (error) {
+      console.warn('⚠️  Failed to initialize socket (offline mode)')
       socketStore.setConnected(false)
-      console.log('❌ Disconnected from Socket.IO server')
-    })
-
-    socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error)
-    })
+    }
   }
 
   const disconnect = () => {
@@ -59,8 +68,8 @@ export const useSocket = () => {
 
   const createRoom = async (hostName: string): Promise<string> => {
     return new Promise((resolve, reject) => {
-      if (!socket) {
-        reject(new Error('Socket not connected'))
+      if (!socket || !socketStore.connected) {
+        reject(new Error('Modo offline: funcionalidade de salas não disponível'))
         return
       }
 
@@ -86,8 +95,8 @@ export const useSocket = () => {
     participantName: string,
   ): Promise<RoomData> => {
     return new Promise((resolve, reject) => {
-      if (!socket) {
-        reject(new Error('Socket not connected'))
+      if (!socket || !socketStore.connected) {
+        reject(new Error('Modo offline: funcionalidade de salas não disponível'))
         return
       }
 

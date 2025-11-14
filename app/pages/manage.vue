@@ -3,9 +3,22 @@
     <!-- Header com navegação -->
     <header class="border-b bg-white shadow-sm">
       <div class="flex flex-col gap-3 p-3 md:p-4">
+        <!-- Modo Offline -->
+        <div
+          v-if="!socket.connected.value"
+          class="rounded-lg bg-yellow-50 p-3 text-center"
+        >
+          <p class="text-xs font-medium text-yellow-700">
+            ⚠️ Modo Offline - Usando placar localmente
+          </p>
+          <p class="mt-1 text-xs text-yellow-600">
+            Funcionalidades de tempo real desabilitadas
+          </p>
+        </div>
+
         <!-- Informação da Sala -->
         <div
-          v-if="socket.roomCode.value"
+          v-if="socket.connected.value && socket.roomCode.value"
           class="rounded-lg bg-blue-50 p-3 text-center"
         >
           <p class="mb-1 text-xs font-medium text-blue-600">
@@ -112,27 +125,24 @@ const copied = ref(false)
 onMounted(() => {
   socket.connect()
 
-  // Setup Socket.IO event listeners
-  socket.onParticipantJoined(() => {
-    console.log('New participant joined')
-  })
+  // Setup Socket.IO event listeners apenas se conectado
+  if (socket.connected.value) {
+    socket.onParticipantJoined(() => {
+      console.log('New participant joined')
+    })
 
-  socket.onRoomClosed((data) => {
-    alert(data.message)
-    router.push('/')
-  })
-
-  // Redireciona se não estiver em uma sala
-  if (!socket.roomCode.value) {
-    router.push('/')
+    socket.onRoomClosed((data) => {
+      alert(data.message)
+      router.push('/')
+    })
   }
 })
 
-// Watch para sincronizar players com a sala
+// Watch para sincronizar players com a sala (apenas se conectado)
 watch(
   () => store.players,
   (players) => {
-    if (socket.isHost.value) {
+    if (socket.connected.value && socket.isHost.value) {
       socket.syncPlayers(players)
     }
   },
@@ -140,8 +150,8 @@ watch(
 )
 
 const handleTeamsDrawn = () => {
-  // Sincroniza as equipes sorteadas com todos os participantes
-  if (socket.isHost.value) {
+  // Sincroniza as equipes sorteadas com todos os participantes (se conectado)
+  if (socket.connected.value && socket.isHost.value) {
     socket.syncTeams(store.teams, store.allTeams)
   }
   router.push('/scoreboard')
