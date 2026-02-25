@@ -172,7 +172,12 @@ export const useScoreboardStore = defineStore('scoreboard', {
         numberOfTeams = numberOfTeams - 1
       }
 
-      const completeTeams = Math.floor(available.length / playersPerTeam)
+      const baseTeamSize = Math.floor(available.length / numberOfTeams)
+      const teamsWithExtraPlayer = available.length % numberOfTeams
+      const targetTeamSizes = Array.from(
+        { length: numberOfTeams },
+        (_, i) => baseTeamSize + (i < teamsWithExtraPlayer ? 1 : 0),
+      )
 
       this.allTeams = Array.from({ length: numberOfTeams }, (_, i) => ({
         name: `EQUIPE ${i + 1}`,
@@ -180,41 +185,49 @@ export const useScoreboardStore = defineStore('scoreboard', {
         members: [],
       }))
 
+      const teamWeights = Array.from({ length: numberOfTeams }, () => 0)
+
       // Embaralhar jogadores primeiro
       const shuffledPlayers = [...available].sort(() => Math.random() - 0.5)
       // Ordenar por peso (maior para menor) para balancear
       const sortedPlayers = shuffledPlayers.sort((a, b) => b.weight - a.weight)
 
       // Distribuir jogadores de forma balanceada pelo peso
-      sortedPlayers.forEach((player, index) => {
-        let targetTeamIndex: number
+      sortedPlayers.forEach((player) => {
+        let targetTeamIndex = -1
+        let minWeight = Infinity
 
-        if (index < completeTeams * playersPerTeam) {
-          // Distribuir balanceado entre times completos
-          let minWeight = Infinity
-          targetTeamIndex = 0
+        for (let i = 0; i < numberOfTeams; i++) {
+          const team = this.allTeams[i]
+          const maxSize = targetTeamSizes[i] ?? 0
 
-          for (let i = 0; i < completeTeams; i++) {
-            const team = this.allTeams[i]
-            if (team && team.members.length < playersPerTeam) {
-              const teamWeight = team.members.reduce(
-                (sum, m) => sum + m.weight,
-                0,
-              )
-              if (teamWeight < minWeight) {
-                minWeight = teamWeight
-                targetTeamIndex = i
-              }
-            }
+          if (!team || team.members.length >= maxSize) {
+            continue
           }
-        } else {
-          // Resto vai para o último time
-          targetTeamIndex = numberOfTeams - 1
+
+          const teamWeight = teamWeights[i] ?? 0
+          const currentTarget = targetTeamIndex === -1 ? null : this.allTeams[targetTeamIndex]
+
+          if (
+            teamWeight < minWeight ||
+            (teamWeight === minWeight &&
+              currentTarget &&
+              team.members.length < currentTarget.members.length)
+          ) {
+            minWeight = teamWeight
+            targetTeamIndex = i
+          }
+        }
+
+        if (targetTeamIndex === -1) {
+          targetTeamIndex = 0
         }
 
         const team = this.allTeams[targetTeamIndex]
         if (team) {
           team.members.push({ ...player })
+          teamWeights[targetTeamIndex] =
+            (teamWeights[targetTeamIndex] ?? 0) + player.weight
         }
       })
 
