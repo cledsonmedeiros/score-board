@@ -14,6 +14,12 @@ export interface Team {
   members: Player[]
 }
 
+export interface PlayerImportData {
+  name: string
+  weight?: number
+  enabled?: boolean
+}
+
 export type TeamColor = 'red' | 'blue'
 
 export interface Teams {
@@ -42,6 +48,98 @@ export const useScoreboardStore = defineStore('scoreboard', {
   },
 
   actions: {
+    normalizePlayerName(name: string) {
+      return name.trim().toLocaleLowerCase('pt-BR')
+    },
+
+    exportPlayersBase64() {
+      const payload = this.players.map((player) => ({
+        name: player.name,
+        weight: player.weight,
+        enabled: player.enabled,
+      }))
+
+      const json = JSON.stringify(payload)
+      const bytes = new TextEncoder().encode(json)
+      const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('')
+      return btoa(binary)
+    },
+
+    decodePlayersBase64(base64: string) {
+      const normalizedBase64 = base64.trim()
+      const binary = atob(normalizedBase64)
+      const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+      const json = new TextDecoder().decode(bytes)
+      const parsed = JSON.parse(json)
+
+      if (!Array.isArray(parsed)) {
+        throw new Error('Formato inválido: esperado uma lista de jogadores')
+      }
+
+      return parsed as PlayerImportData[]
+    },
+
+    importPlayersMerge(importedPlayers: PlayerImportData[]) {
+      const existingNames = new Set(
+        this.players.map((player) => this.normalizePlayerName(player.name)),
+      )
+
+      let addedCount = 0
+      let skippedCount = 0
+
+      importedPlayers.forEach((player) => {
+        const rawName = typeof player.name === 'string' ? player.name.trim() : ''
+
+        if (!rawName) {
+          skippedCount++
+          return
+        }
+
+        const normalizedName = this.normalizePlayerName(rawName)
+        if (existingNames.has(normalizedName)) {
+          skippedCount++
+          return
+        }
+
+        const weight =
+          typeof player.weight === 'number'
+            ? Math.max(1, Math.min(5, player.weight))
+            : 3
+
+        const enabled =
+          typeof player.enabled === 'boolean'
+            ? player.enabled
+            : true
+
+        const timestamp = Date.now()
+        this.players.push({
+          id: `${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
+          name: rawName,
+          weight,
+          enabled,
+          createdAt: timestamp,
+        })
+
+        existingNames.add(normalizedName)
+        addedCount++
+      })
+
+      if (addedCount > 0) {
+        this.savePlayers()
+      }
+
+      return {
+        addedCount,
+        skippedCount,
+        total: importedPlayers.length,
+      }
+    },
+
+    importPlayersFromBase64(base64: string) {
+      const decoded = this.decodePlayersBase64(base64)
+      return this.importPlayersMerge(decoded)
+    },
+
     // Storage
     loadPlayers() {
       if (import.meta.client) {
