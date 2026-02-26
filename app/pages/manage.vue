@@ -9,6 +9,17 @@
           </h1>
           <div class="flex gap-2">
             <button
+              @click="showTransferModal = true"
+              class="flex items-center gap-1.5 rounded-lg border-2
+                border-indigo-300 bg-white px-3 py-2 text-sm font-semibold
+                text-indigo-700 shadow-sm transition-all hover:bg-indigo-50
+                active:scale-95 active:bg-indigo-100"
+              title="Exportar ou importar jogadores"
+            >
+              <Icon name="heroicons:qr-code" class="h-4 w-4" />
+              <span class="hidden sm:inline">Importar/Exportar</span>
+            </button>
+            <button
               @click="handleClearAll"
               class="flex items-center gap-1.5 rounded-lg border-2
                 border-red-300 bg-white px-3 py-2 text-sm font-semibold
@@ -57,12 +68,18 @@
       @close="showDrawModal = false"
       @drawn="handleTeamsDrawn"
     />
+
+    <PlayerTransferModal
+      v-if="showTransferModal"
+      @close="showTransferModal = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 const store = useScoreboardStore()
 const showDrawModal = ref(false)
+const showTransferModal = ref(false)
 
 const handleTeamsDrawn = () => {
   // Redirecionar para a página do placar após sortear
