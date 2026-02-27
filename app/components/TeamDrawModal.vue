@@ -613,6 +613,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useScoreboardStore()
+const { askConfirm } = usePrompt()
 
 // Modo de criação: 'auto' (sorteio) ou 'manual'
 const creationMode = ref<'auto' | 'manual'>('auto')
@@ -807,12 +808,16 @@ const addManualTeam = () => {
   })
 }
 
-const resetManualTeams = () => {
-  const confirmed = confirm(
-    'Deseja resetar e começar do zero?\n\n' +
-    'As equipes atuais serão removidas e você começará com 2 equipes vazias.',
-  )
-  
+const resetManualTeams = async () => {
+  const confirmed = await askConfirm({
+    title: 'Resetar equipes manuais?',
+    message:
+      'As equipes atuais serão removidas e você começará com 2 equipes vazias.',
+    confirmLabel: 'Resetar',
+    cancelLabel: 'Cancelar',
+    confirmTone: 'danger',
+  })
+
   if (confirmed) {
     // Cria equipes vazias
     const teamNames = ['Equipe Vermelha', 'Equipe Azul']

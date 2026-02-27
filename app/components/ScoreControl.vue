@@ -41,6 +41,7 @@
 
 <script setup lang="ts">
 const store = useScoreboardStore()
+const { askConfirm } = usePrompt()
 
 const btnConfig = {
   base: 'border-2 border-white flex h-14 w-14 cursor-pointer items-center justify-center rounded-full shadow-xl transition-all duration-200',
@@ -53,8 +54,15 @@ const redTeamHasScore = computed(() => store.redTeam?.score > 0)
 const blueTeamHasScore = computed(() => store.blueTeam?.score > 0)
 const matchHasScore = computed(() => redTeamHasScore.value || blueTeamHasScore.value)
 
-const handleResetScores = () => {
-  if (confirm('Resetar placar?')) {
+const handleResetScores = async () => {
+  const confirmed = await askConfirm({
+    title: 'Resetar placar?',
+    confirmLabel: 'Resetar',
+    cancelLabel: 'Cancelar',
+    confirmTone: 'danger',
+  })
+
+  if (confirmed) {
     store.resetScores()
   }
 }

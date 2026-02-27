@@ -20,6 +20,22 @@ export interface PlayerImportData {
   enabled?: boolean
 }
 
+export interface CannotPairRuleImportData {
+  playerAName: string
+  playerBName: string
+}
+
+export interface TransferPayloadV2 {
+  version: 2
+  players: PlayerImportData[]
+  cannotPairRules: CannotPairRuleImportData[]
+}
+
+export interface DecodedTransferPayload {
+  players: PlayerImportData[]
+  cannotPairRules: CannotPairRuleImportData[]
+}
+
 export interface CannotPairRule {
   id: string
   playerAId: string
@@ -91,12 +107,42 @@ export const useScoreboardStore = defineStore('scoreboard', {
       return name.trim().toLocaleLowerCase('pt-BR')
     },
 
+    resolvePlayerIdByName(name: string) {
+      const normalizedName = this.normalizePlayerName(name)
+      const player = this.players.find(
+        (item) => this.normalizePlayerName(item.name) === normalizedName,
+      )
+      return player?.id ?? null
+    },
+
     exportPlayersBase64() {
-      const payload = this.players.map((player) => ({
+      const playersPayload = this.players.map((player) => ({
         name: player.name,
         weight: player.weight,
         enabled: player.enabled,
       }))
+
+      const cannotPairRulesPayload = this.cannotPairRules
+        .map((rule) => {
+          const playerA = this.players.find((player) => player.id === rule.playerAId)
+          const playerB = this.players.find((player) => player.id === rule.playerBId)
+
+          if (!playerA || !playerB) {
+            return null
+          }
+
+          return {
+            playerAName: playerA.name,
+            playerBName: playerB.name,
+          }
+        })
+        .filter((rule): rule is CannotPairRuleImportData => !!rule)
+
+      const payload: TransferPayloadV2 = {
+        version: 2,
+        players: playersPayload,
+        cannotPairRules: cannotPairRulesPayload,
+      }
 
       const json = JSON.stringify(payload)
       const bytes = new TextEncoder().encode(json)
@@ -104,18 +150,45 @@ export const useScoreboardStore = defineStore('scoreboard', {
       return btoa(binary)
     },
 
-    decodePlayersBase64(base64: string) {
+    decodePlayersBase64(base64: string): DecodedTransferPayload {
       const normalizedBase64 = base64.trim()
       const binary = atob(normalizedBase64)
       const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
       const json = new TextDecoder().decode(bytes)
-      const parsed = JSON.parse(json)
+      const parsed: unknown = JSON.parse(json)
 
-      if (!Array.isArray(parsed)) {
-        throw new Error('Formato inválido: esperado uma lista de jogadores')
+      if (Array.isArray(parsed)) {
+        return {
+          players: parsed as PlayerImportData[],
+          cannotPairRules: [] as CannotPairRuleImportData[],
+        }
       }
 
-      return parsed as PlayerImportData[]
+      if (parsed && typeof parsed === 'object') {
+        const payload = parsed as {
+          players?: unknown
+          cannotPairRules?: unknown
+        }
+
+        if (!Array.isArray(payload.players)) {
+          throw new Error('Formato inválido: esperado dados de jogadores')
+        }
+
+        const cannotPairRules = Array.isArray(payload.cannotPairRules)
+          ? payload.cannotPairRules.filter(
+              (rule): rule is CannotPairRuleImportData =>
+                typeof rule?.playerAName === 'string' &&
+                typeof rule?.playerBName === 'string',
+            )
+          : []
+
+        return {
+          players: payload.players as PlayerImportData[],
+          cannotPairRules,
+        }
+      }
+
+      throw new Error('Formato inválido: esperado dados de jogadores')
     },
 
     importPlayersMerge(importedPlayers: PlayerImportData[]) {
@@ -174,9 +247,119 @@ export const useScoreboardStore = defineStore('scoreboard', {
       }
     },
 
-    importPlayersFromBase64(base64: string) {
+    replacePlayersFromImport(importedPlayers: PlayerImportData[]) {
+      const seenNames = new Set<string>()
+      const nextPlayers: Player[] = []
+      let addedCount = 0
+      let skippedCount = 0
+
+      importedPlayers.forEach((player, index) => {
+        const rawName = typeof player.name === 'string' ? player.name.trim() : ''
+
+        if (!rawName) {
+          skippedCount++
+          return
+        }
+
+        const normalizedName = this.normalizePlayerName(rawName)
+        if (seenNames.has(normalizedName)) {
+          skippedCount++
+          return
+        }
+
+        const weight =
+          typeof player.weight === 'number'
+            ? Math.max(1, Math.min(5, player.weight))
+            : 3
+
+        const enabled =
+          typeof player.enabled === 'boolean'
+            ? player.enabled
+            : true
+
+        const timestamp = Date.now()
+        nextPlayers.push({
+          id: `${timestamp}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+          name: rawName,
+          weight,
+          enabled,
+          createdAt: timestamp,
+        })
+
+        seenNames.add(normalizedName)
+        addedCount++
+      })
+
+      this.players = nextPlayers
+      this.teams = {
+        red: { name: 'EQUIPE 1', score: 0, members: [] },
+        blue: { name: 'EQUIPE 2', score: 0, members: [] },
+      }
+      this.allTeams = []
+
+      this.savePlayers()
+      this.saveTeams()
+      this.saveAllTeams()
+
+      return {
+        addedCount,
+        skippedCount,
+        total: importedPlayers.length,
+      }
+    },
+
+    importCannotPairRules(
+      importedRules: CannotPairRuleImportData[],
+      replaceExisting: boolean,
+    ) {
+      if (replaceExisting) {
+        this.cannotPairRules = []
+      }
+
+      let ruleAddedCount = 0
+      let ruleSkippedCount = 0
+
+      importedRules.forEach((rule) => {
+        const playerAId = this.resolvePlayerIdByName(rule.playerAName)
+        const playerBId = this.resolvePlayerIdByName(rule.playerBName)
+
+        if (!playerAId || !playerBId || playerAId === playerBId) {
+          ruleSkippedCount++
+          return
+        }
+
+        const addedRule = this.addCannotPairRule(playerAId, playerBId)
+        if (addedRule) {
+          ruleAddedCount++
+        } else {
+          ruleSkippedCount++
+        }
+      })
+
+      this.saveConstraints()
+
+      return {
+        ruleAddedCount,
+        ruleSkippedCount,
+        ruleTotal: importedRules.length,
+      }
+    },
+
+    importPlayersFromBase64(base64: string, replaceLocalData: boolean = false) {
       const decoded = this.decodePlayersBase64(base64)
-      return this.importPlayersMerge(decoded)
+      const playerResult = replaceLocalData
+        ? this.replacePlayersFromImport(decoded.players)
+        : this.importPlayersMerge(decoded.players)
+
+      const ruleResult = this.importCannotPairRules(
+        decoded.cannotPairRules,
+        replaceLocalData,
+      )
+
+      return {
+        ...playerResult,
+        ...ruleResult,
+      }
     },
 
     // Storage

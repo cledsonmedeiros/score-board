@@ -9,7 +9,7 @@
     >
       <div class="mb-4 flex items-center justify-between md:mb-6">
         <h2 class="text-xl font-bold text-gray-800 md:text-2xl">
-          Exportar / Importar Jogadores
+          Exportar / Importar Dados
         </h2>
         <button
           @click="handleClose"
@@ -48,12 +48,12 @@
 
       <div v-if="mode === 'export'" class="space-y-4">
         <p class="text-sm text-gray-600">
-          Compartilhe a lista via QR Code ou copiando o Base64.
+          Compartilhe jogadores e restrições via QR Code ou copiando o Base64.
         </p>
 
         <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
           <label class="mb-2 block text-xs font-semibold text-gray-700">
-            Base64 da lista de jogadores
+            Base64 dos dados (jogadores + regras)
           </label>
           <textarea
             :value="exportBase64"
@@ -79,7 +79,7 @@
             <img
               v-if="qrCodeDataUrl"
               :src="qrCodeDataUrl"
-              alt="QR Code da lista de jogadores"
+              alt="QR Code dos dados de jogadores e regras"
               class="h-52 w-52"
             />
             <div v-else class="py-8 text-sm text-gray-500">
@@ -91,8 +91,8 @@
 
       <div v-else class="space-y-4">
         <p class="text-sm text-gray-600">
-          A importação sempre mescla com os jogadores atuais e ignora nomes já
-          existentes.
+          A importação mescla jogadores e regras com os dados atuais, ignorando
+          duplicados.
         </p>
 
         <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
@@ -197,6 +197,7 @@
 import QRCode from 'qrcode'
 
 const store = useScoreboardStore()
+const { openPrompt } = usePrompt()
 
 const emit = defineEmits<{
   close: []
@@ -216,6 +217,45 @@ let scanInterval: ReturnType<typeof setInterval> | null = null
 let isDetecting = false
 
 const exportBase64 = computed(() => store.exportPlayersBase64())
+
+const formatImportSummary = (result: {
+  addedCount: number
+  skippedCount: number
+  ruleAddedCount: number
+  ruleSkippedCount: number
+}) => {
+  return (
+    `Jogadores: ${result.addedCount} adicionados, ${result.skippedCount} ignorados. ` +
+    `Regras: ${result.ruleAddedCount} adicionadas, ${result.ruleSkippedCount} ignoradas.`
+  )
+}
+
+const askImportMode = async () => {
+  return openPrompt({
+    title: 'Como deseja importar?',
+    message:
+      'Escolha entre substituir sua base local ou apenas mesclar com os dados atuais.',
+    options: [
+      {
+        label: 'Substituir base local',
+        value: 'replace',
+        tone: 'danger',
+      },
+      {
+        label: 'Mesclar com dados locais',
+        value: 'merge',
+        tone: 'primary',
+      },
+      {
+        label: 'Cancelar importação',
+        value: 'cancel',
+        tone: 'neutral',
+      },
+    ],
+    closeOnBackdrop: true,
+    closeValue: 'cancel',
+  })
+}
 
 const setFeedback = (type: 'success' | 'error', message: string) => {
   feedbackType.value = type
@@ -273,14 +313,24 @@ const handleCopyBase64 = async () => {
   }
 }
 
-const handleImportBase64 = () => {
+const handleImportBase64 = async () => {
   clearFeedback()
 
   try {
-    const result = store.importPlayersFromBase64(importBase64.value)
+    const importMode = await askImportMode()
+    if (importMode === 'cancel' || !importMode) {
+      setFeedback('error', 'Importação cancelada.')
+      return
+    }
+
+    const replaceLocalData = importMode === 'replace'
+    const result = store.importPlayersFromBase64(
+      importBase64.value,
+      replaceLocalData,
+    )
     setFeedback(
       'success',
-      `Importação concluída: ${result.addedCount} adicionados, ${result.skippedCount} ignorados.`,
+      `Importação concluída. ${formatImportSummary(result)}`,
     )
   } catch {
     setFeedback('error', 'Base64 inválido ou formato de dados incorreto.')
@@ -472,11 +522,21 @@ const startCameraScan = async () => {
         }
 
         importBase64.value = rawValue
-        const importResult = store.importPlayersFromBase64(rawValue)
+        const importMode = await askImportMode()
+        if (importMode === 'cancel' || !importMode) {
+          setFeedback('error', 'Importação cancelada.')
+          return
+        }
+
+        const replaceLocalData = importMode === 'replace'
+        const importResult = store.importPlayersFromBase64(
+          rawValue,
+          replaceLocalData,
+        )
 
         setFeedback(
           'success',
-          `QR importado: ${importResult.addedCount} adicionados, ${importResult.skippedCount} ignorados.`,
+          `QR importado. ${formatImportSummary(importResult)}`,
         )
         stopCameraScan()
       } catch {
@@ -532,11 +592,21 @@ const handleQrImageSelected = async (event: Event) => {
   try {
     const decodedBase64 = await decodeQrFromImage(file)
     importBase64.value = decodedBase64
-    const result = store.importPlayersFromBase64(decodedBase64)
+    const importMode = await askImportMode()
+    if (importMode === 'cancel' || !importMode) {
+      setFeedback('error', 'Importação cancelada.')
+      return
+    }
+
+    const replaceLocalData = importMode === 'replace'
+    const result = store.importPlayersFromBase64(
+      decodedBase64,
+      replaceLocalData,
+    )
 
     setFeedback(
       'success',
-      `QR importado: ${result.addedCount} adicionados, ${result.skippedCount} ignorados.`,
+      `QR importado. ${formatImportSummary(result)}`,
     )
   } catch {
     setFeedback(

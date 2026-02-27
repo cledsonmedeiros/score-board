@@ -80,22 +80,27 @@
 const store = useScoreboardStore()
 const showDrawModal = ref(false)
 const showTransferModal = ref(false)
+const { askConfirm } = usePrompt()
 
 const handleTeamsDrawn = () => {
   // Redirecionar para a página do placar após sortear
   navigateTo('/')
 }
 
-const handleClearAll = () => {
-  const confirmed = confirm(
-    'Tem certeza que deseja limpar TODOS os dados?\n\n' +
-    'Isso irá remover:\n' +
-    '• Todos os jogadores\n' +
-    '• Todas as equipes formadas\n' +
-    '• Todos os placares\n\n' +
-    'Esta ação não pode ser desfeita!'
-  )
-  
+const handleClearAll = async () => {
+  const confirmed = await askConfirm({
+    title: 'Limpar todos os dados?',
+    message:
+      'Isso irá remover:\n' +
+      '• Todos os jogadores\n' +
+      '• Todas as equipes formadas\n' +
+      '• Todos os placares\n\n' +
+      'Esta ação não pode ser desfeita!',
+    confirmLabel: 'Limpar Tudo',
+    cancelLabel: 'Cancelar',
+    confirmTone: 'danger',
+  })
+
   if (confirmed) {
     store.clearAllData()
   }

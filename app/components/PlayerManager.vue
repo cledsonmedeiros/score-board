@@ -170,6 +170,7 @@
 import type { Player } from '~/stores/scoreboard'
 
 const store = useScoreboardStore()
+const { askConfirm } = usePrompt()
 
 const { truncateText } = useFormatters()
 
@@ -204,8 +205,16 @@ const handleAddPlayer = () => {
   }
 }
 
-const handleRemovePlayer = (playerId: string) => {
-  if (confirm('Tem certeza que deseja remover este jogador?')) {
+const handleRemovePlayer = async (playerId: string) => {
+  const confirmed = await askConfirm({
+    title: 'Remover jogador?',
+    message: 'Tem certeza que deseja remover este jogador?',
+    confirmLabel: 'Remover',
+    cancelLabel: 'Cancelar',
+    confirmTone: 'danger',
+  })
+
+  if (confirmed) {
     store.removePlayer(playerId)
   }
 }
