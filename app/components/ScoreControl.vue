@@ -2,8 +2,9 @@
   <div
     v-if="matchHasScore"
     class="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2
-      items-center justify-between gap-6 rounded-full border border-white/20
-      bg-white/10 p-4 shadow-xl backdrop-blur-md sm:gap-4 sm:p-3"
+      items-center justify-between rounded-full border border-white/20
+      bg-white/10 shadow-xl backdrop-blur-md"
+    :class="isLandscape ? 'gap-6 p-4 sm:gap-4 sm:p-3' : 'gap-4 p-3 sm:gap-3 sm:p-2.5'"
   >
     <button
       :class="[btnConfig.base, btnConfig.red]"
@@ -22,7 +23,8 @@
     >
       <Icon
         name="heroicons:arrow-path"
-        class="h-6 w-6 text-white sm:h-8 sm:w-8 landscape:h-7 landscape:w-7"
+        class="h-6 w-6 text-white"
+        :class="isLandscape ? 'sm:h-8 sm:w-8' : 'sm:h-7 sm:w-7'"
       />
     </button>
 
@@ -42,6 +44,7 @@
 <script setup lang="ts">
 const store = useScoreboardStore()
 const { askConfirm } = usePrompt()
+const { isLandscape } = useOrientation()
 
 const btnConfig = {
   base: 'border-2 border-white flex h-14 w-14 cursor-pointer items-center justify-center rounded-full shadow-xl transition-all duration-200',
