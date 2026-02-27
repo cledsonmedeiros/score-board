@@ -20,6 +20,12 @@ export interface PlayerImportData {
   enabled?: boolean
 }
 
+export interface CannotPairRule {
+  id: string
+  playerAId: string
+  playerBId: string
+}
+
 export type TeamColor = 'red' | 'blue'
 
 export interface Teams {
@@ -29,6 +35,7 @@ export interface Teams {
 
 const STORAGE_KEY = 'scoreboard-players'
 const TEAMS_STORAGE_KEY = 'scoreboard-teams'
+const CONSTRAINTS_STORAGE_KEY = 'scoreboard-constraints'
 
 export const useScoreboardStore = defineStore('scoreboard', {
   state: () => ({
@@ -38,6 +45,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
       blue: { name: 'EQUIPE 2', score: 0, members: [] },
     } as Teams,
     allTeams: [] as Team[], // Para sortear múltiplas equipes
+    cannotPairRules: [] as CannotPairRule[],
   }),
 
   getters: {
@@ -48,6 +56,37 @@ export const useScoreboardStore = defineStore('scoreboard', {
   },
 
   actions: {
+    getPairKey(playerAId: string, playerBId: string) {
+      return [playerAId, playerBId].sort().join('::')
+    },
+
+    buildCannotPairLookup() {
+      const lookup = new Map<string, Set<string>>()
+
+      this.cannotPairRules.forEach((rule) => {
+        if (!lookup.has(rule.playerAId)) {
+          lookup.set(rule.playerAId, new Set())
+        }
+        if (!lookup.has(rule.playerBId)) {
+          lookup.set(rule.playerBId, new Set())
+        }
+
+        lookup.get(rule.playerAId)?.add(rule.playerBId)
+        lookup.get(rule.playerBId)?.add(rule.playerAId)
+      })
+
+      return lookup
+    },
+
+    canJoinTeam(playerId: string, team: Team, cannotPairLookup: Map<string, Set<string>>) {
+      const blockedPlayers = cannotPairLookup.get(playerId)
+      if (!blockedPlayers || blockedPlayers.size === 0) {
+        return true
+      }
+
+      return !team.members.some((member) => blockedPlayers.has(member.id))
+    },
+
     normalizePlayerName(name: string) {
       return name.trim().toLocaleLowerCase('pt-BR')
     },
@@ -161,6 +200,41 @@ export const useScoreboardStore = defineStore('scoreboard', {
       }
     },
 
+    loadConstraints() {
+      if (import.meta.client) {
+        const stored = localStorage.getItem(CONSTRAINTS_STORAGE_KEY)
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored)
+
+            if (Array.isArray(parsed)) {
+              this.cannotPairRules = parsed.filter(
+                (rule): rule is CannotPairRule =>
+                  typeof rule?.id === 'string' &&
+                  typeof rule?.playerAId === 'string' &&
+                  typeof rule?.playerBId === 'string' &&
+                  rule.playerAId !== rule.playerBId,
+              )
+            } else {
+              this.cannotPairRules = []
+            }
+          } catch (e) {
+            console.error('Erro ao carregar restrições:', e)
+            this.cannotPairRules = []
+          }
+        }
+      }
+    },
+
+    saveConstraints() {
+      if (import.meta.client) {
+        localStorage.setItem(
+          CONSTRAINTS_STORAGE_KEY,
+          JSON.stringify(this.cannotPairRules),
+        )
+      }
+    },
+
     loadTeams() {
       if (import.meta.client) {
         const stored = localStorage.getItem(TEAMS_STORAGE_KEY)
@@ -214,9 +288,66 @@ export const useScoreboardStore = defineStore('scoreboard', {
       if (index !== -1) {
         this.players.splice(index, 1)
         this.savePlayers()
+
+        const previousLength = this.cannotPairRules.length
+        this.cannotPairRules = this.cannotPairRules.filter(
+          (rule) => rule.playerAId !== playerId && rule.playerBId !== playerId,
+        )
+        if (this.cannotPairRules.length !== previousLength) {
+          this.saveConstraints()
+        }
+
         return true
       }
       return false
+    },
+
+    addCannotPairRule(playerAId: string, playerBId: string) {
+      if (playerAId === playerBId) {
+        throw new Error('Selecione dois jogadores diferentes para a restrição')
+      }
+
+      const playerAExists = this.players.some((player) => player.id === playerAId)
+      const playerBExists = this.players.some((player) => player.id === playerBId)
+
+      if (!playerAExists || !playerBExists) {
+        throw new Error('Jogador não encontrado para criar restrição')
+      }
+
+      const pairKey = this.getPairKey(playerAId, playerBId)
+      const alreadyExists = this.cannotPairRules.some(
+        (rule) => this.getPairKey(rule.playerAId, rule.playerBId) === pairKey,
+      )
+
+      if (alreadyExists) {
+        return null
+      }
+
+      const rule: CannotPairRule = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        playerAId,
+        playerBId,
+      }
+
+      this.cannotPairRules.push(rule)
+      this.saveConstraints()
+      return rule
+    },
+
+    removeCannotPairRule(ruleId: string) {
+      const index = this.cannotPairRules.findIndex((rule) => rule.id === ruleId)
+      if (index !== -1) {
+        this.cannotPairRules.splice(index, 1)
+        this.saveConstraints()
+        return true
+      }
+
+      return false
+    },
+
+    clearCannotPairRules() {
+      this.cannotPairRules = []
+      this.saveConstraints()
     },
 
     updatePlayer(
@@ -263,19 +394,13 @@ export const useScoreboardStore = defineStore('scoreboard', {
 
       // Calcular número de times
       let numberOfTeams = Math.ceil(available.length / playersPerTeam)
+
+      const completeTeams = Math.floor(available.length / playersPerTeam)
       const remainder = available.length % playersPerTeam
-
-      // Se sobrar apenas 1 jogador, mesclar com o penúltimo time
-      if (remainder === 1 && numberOfTeams > 1) {
-        numberOfTeams = numberOfTeams - 1
-      }
-
-      const baseTeamSize = Math.floor(available.length / numberOfTeams)
-      const teamsWithExtraPlayer = available.length % numberOfTeams
-      const targetTeamSizes = Array.from(
-        { length: numberOfTeams },
-        (_, i) => baseTeamSize + (i < teamsWithExtraPlayer ? 1 : 0),
-      )
+      const targetTeamSizes = [
+        ...Array.from({ length: completeTeams }, () => playersPerTeam),
+        ...(remainder > 0 ? [remainder] : []),
+      ]
 
       this.allTeams = Array.from({ length: numberOfTeams }, (_, i) => ({
         name: `EQUIPE ${i + 1}`,
@@ -284,6 +409,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
       }))
 
       const teamWeights = Array.from({ length: numberOfTeams }, () => 0)
+      const cannotPairLookup = this.buildCannotPairLookup()
 
       // Embaralhar jogadores primeiro
       const shuffledPlayers = [...available].sort(() => Math.random() - 0.5)
@@ -303,6 +429,10 @@ export const useScoreboardStore = defineStore('scoreboard', {
             continue
           }
 
+          if (!this.canJoinTeam(player.id, team, cannotPairLookup)) {
+            continue
+          }
+
           const teamWeight = teamWeights[i] ?? 0
           const currentTarget = targetTeamIndex === -1 ? null : this.allTeams[targetTeamIndex]
 
@@ -318,7 +448,9 @@ export const useScoreboardStore = defineStore('scoreboard', {
         }
 
         if (targetTeamIndex === -1) {
-          targetTeamIndex = 0
+          throw new Error(
+            'Não foi possível montar equipes com as restrições atuais. Revise as regras de jogadores que não podem jogar juntos.',
+          )
         }
 
         const team = this.allTeams[targetTeamIndex]
@@ -350,39 +482,48 @@ export const useScoreboardStore = defineStore('scoreboard', {
 
       // Calcular número de times
       let numberOfTeams = Math.ceil(available.length / playersPerTeam)
-      const remainder = available.length % playersPerTeam
-
-      // Se sobrar apenas 1 jogador, mesclar com o penúltimo time
-      if (remainder === 1 && numberOfTeams > 1) {
-        numberOfTeams = numberOfTeams - 1
-      }
-
       const completeTeams = Math.floor(available.length / playersPerTeam)
+      const remainder = available.length % playersPerTeam
+      const targetTeamSizes = [
+        ...Array.from({ length: completeTeams }, () => playersPerTeam),
+        ...(remainder > 0 ? [remainder] : []),
+      ]
 
       this.allTeams = Array.from({ length: numberOfTeams }, (_, i) => ({
         name: `EQUIPE ${i + 1}`,
         score: 0,
         members: [],
       }))
+      const cannotPairLookup = this.buildCannotPairLookup()
 
       // Embaralhar todos os jogadores
       const shuffled = [...available].sort(() => Math.random() - 0.5)
 
       // Distribuir jogadores
-      shuffled.forEach((player, index) => {
-        let teamIndex: number
+      shuffled.forEach((player) => {
+        let assigned = false
 
-        if (index < completeTeams * playersPerTeam) {
-          // Distribui nos times completos
-          teamIndex = Math.floor(index / playersPerTeam)
-        } else {
-          // Resto vai para o último time
-          teamIndex = numberOfTeams - 1
+        for (let teamIndex = 0; teamIndex < numberOfTeams; teamIndex++) {
+          const team = this.allTeams[teamIndex]
+          const maxSize = targetTeamSizes[teamIndex] ?? 0
+
+          if (!team || team.members.length >= maxSize) {
+            continue
+          }
+
+          if (!this.canJoinTeam(player.id, team, cannotPairLookup)) {
+            continue
+          }
+
+          team.members.push({ ...player })
+          assigned = true
+          break
         }
 
-        const team = this.allTeams[teamIndex]
-        if (team) {
-          team.members.push({ ...player })
+        if (!assigned) {
+          throw new Error(
+            'Não foi possível montar equipes com as restrições atuais. Revise as regras de jogadores que não podem jogar juntos.',
+          )
         }
       })
 
@@ -456,6 +597,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
         localStorage.removeItem(STORAGE_KEY)
         localStorage.removeItem(TEAMS_STORAGE_KEY)
         localStorage.removeItem('scoreboard-all-teams')
+        localStorage.removeItem(CONSTRAINTS_STORAGE_KEY)
       }
     },
 
@@ -463,6 +605,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
     init() {
       this.loadPlayers()
       this.loadTeams()
+      this.loadConstraints()
     },
   },
 })

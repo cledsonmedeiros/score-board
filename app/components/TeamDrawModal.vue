@@ -4,7 +4,7 @@
     @click.self="$emit('close')"
   >
     <div
-      class="max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white
+      class="max-h-[90dvh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white
         p-4 shadow-2xl md:p-6"
       @click.stop
     >
@@ -251,6 +251,89 @@
                   </p>
                 </div>
               </label>
+            </div>
+          </div>
+
+          <!-- Restrições de Sorteio -->
+          <div class="rounded-lg border border-gray-200 p-4">
+            <div class="mb-3">
+              <h3 class="text-sm font-semibold text-gray-800">
+                Restrições de Jogadores
+              </h3>
+              <p class="text-xs text-gray-600">
+                Defina pares que não podem cair na mesma equipe.
+              </p>
+            </div>
+
+            <div class="mb-3 grid gap-2 md:grid-cols-3">
+              <select
+                v-model="constraintPlayerAId"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
+                  focus:border-blue-500 focus:outline-none focus:ring-2
+                  focus:ring-blue-500"
+              >
+                <option value="">Jogador A</option>
+                <option
+                  v-for="player in store.enabledPlayers"
+                  :key="`constraint-a-${player.id}`"
+                  :value="player.id"
+                >
+                  {{ player.name }}
+                </option>
+              </select>
+
+              <select
+                v-model="constraintPlayerBId"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
+                  focus:border-blue-500 focus:outline-none focus:ring-2
+                  focus:ring-blue-500"
+              >
+                <option value="">Jogador B</option>
+                <option
+                  v-for="player in availableConstraintPlayerB"
+                  :key="`constraint-b-${player.id}`"
+                  :value="player.id"
+                >
+                  {{ player.name }}
+                </option>
+              </select>
+
+              <button
+                @click="handleAddCannotPairRule"
+                class="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2
+                  text-sm font-semibold text-blue-700 transition-colors
+                  hover:bg-blue-100"
+              >
+                + Adicionar Regra
+              </button>
+            </div>
+
+            <div
+              v-if="cannotPairRulesWithPlayers.length === 0"
+              class="rounded-lg bg-gray-50 p-3 text-xs text-gray-600"
+            >
+              Nenhuma restrição cadastrada.
+            </div>
+
+            <div v-else class="max-h-40 space-y-2 overflow-y-auto">
+              <div
+                v-for="rule in cannotPairRulesWithPlayers"
+                :key="rule.id"
+                class="flex items-center justify-between rounded-lg border
+                  border-gray-200 bg-white p-2"
+              >
+                <p class="text-sm text-gray-700">
+                  {{ rule.playerAName }} <span class="font-semibold">não pode</span>
+                  com {{ rule.playerBName }}
+                </p>
+                <button
+                  @click="handleRemoveCannotPairRule(rule.id)"
+                  class="rounded p-1 text-red-600 transition-colors hover:bg-red-50"
+                  title="Remover restrição"
+                >
+                  <Icon name="heroicons:trash" class="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -539,6 +622,8 @@ const playersPerTeam = ref(4)
 const drawType = ref<'balanced' | 'random'>('balanced')
 const previewTeams = ref<Team[] | null>(null)
 const showPreview = ref(false)
+const constraintPlayerAId = ref('')
+const constraintPlayerBId = ref('')
 
 // Estados do modo manual
 const manualTeams = ref<Team[]>([])
@@ -549,17 +634,34 @@ const playerToAssign = ref<Player | null>(null)
 const calculatedTeams = computed(() => {
   if (playersPerTeam.value < 1) return 0
 
-  let numberOfTeams = Math.ceil(
-    store.enabledPlayers.length / playersPerTeam.value,
-  )
-  const remainder = store.enabledPlayers.length % playersPerTeam.value
+  return Math.ceil(store.enabledPlayers.length / playersPerTeam.value)
+})
 
-  // Se sobrar apenas 1 jogador, mesclar com o penúltimo time
-  if (remainder === 1 && numberOfTeams > 1) {
-    numberOfTeams = numberOfTeams - 1
+const playersById = computed(() => {
+  return new Map(store.players.map((player) => [player.id, player]))
+})
+
+const availableConstraintPlayerB = computed(() => {
+  if (!constraintPlayerAId.value) {
+    return store.enabledPlayers
   }
 
-  return numberOfTeams
+  return store.enabledPlayers.filter(
+    (player) => player.id !== constraintPlayerAId.value,
+  )
+})
+
+const cannotPairRulesWithPlayers = computed(() => {
+  return store.cannotPairRules.map((rule) => {
+    const playerA = playersById.value.get(rule.playerAId)
+    const playerB = playersById.value.get(rule.playerBId)
+
+    return {
+      id: rule.id,
+      playerAName: playerA?.name ?? 'Jogador removido',
+      playerBName: playerB?.name ?? 'Jogador removido',
+    }
+  })
 })
 
 // Jogadores não alocados no modo manual
@@ -608,8 +710,42 @@ const handleDraw = () => {
     showPreview.value = true
   } catch (error) {
     console.error('Erro ao sortear equipes:', error)
-    alert('Erro ao sortear equipes. Tente novamente.')
+    const message = error instanceof Error
+      ? error.message
+      : 'Erro ao sortear equipes. Tente novamente.'
+    alert(message)
   }
+}
+
+const handleAddCannotPairRule = () => {
+  if (!constraintPlayerAId.value || !constraintPlayerBId.value) {
+    alert('Selecione os dois jogadores para adicionar a restrição.')
+    return
+  }
+
+  try {
+    const addedRule = store.addCannotPairRule(
+      constraintPlayerAId.value,
+      constraintPlayerBId.value,
+    )
+
+    if (!addedRule) {
+      alert('Essa restrição já existe.')
+      return
+    }
+
+    constraintPlayerAId.value = ''
+    constraintPlayerBId.value = ''
+  } catch (error) {
+    const message = error instanceof Error
+      ? error.message
+      : 'Não foi possível adicionar a restrição.'
+    alert(message)
+  }
+}
+
+const handleRemoveCannotPairRule = (ruleId: string) => {
+  store.removeCannotPairRule(ruleId)
 }
 
 const redrawTeams = () => {
