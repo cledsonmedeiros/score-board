@@ -108,21 +108,21 @@
     </div>
 
     <!-- Modal de Sorteio -->
-    <TeamDrawModal
+    <LazyTeamDrawModal
       v-if="showDrawModal"
       @close="showDrawModal = false"
       @drawn="showDrawModal = false"
     />
 
     <!-- Modal de Visualização -->
-    <ViewTeamsModal
+    <LazyViewTeamsModal
       v-if="showViewModal"
       :teams="store.allTeams"
       @close="showViewModal = false"
     />
 
     <!-- Modal de Seleção de Equipes -->
-    <TeamSelectorModal
+    <LazyTeamSelectorModal
       v-if="showSelectorModal"
       @close="showSelectorModal = false"
     />

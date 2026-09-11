@@ -63,13 +63,13 @@
     </div>
 
     <!-- Modal de sorteio -->
-    <TeamDrawModal
+    <LazyTeamDrawModal
       v-if="showDrawModal"
       @close="showDrawModal = false"
       @drawn="handleTeamsDrawn"
     />
 
-    <PlayerTransferModal
+    <LazyPlayerTransferModal
       v-if="showTransferModal"
       @close="showTransferModal = false"
     />
