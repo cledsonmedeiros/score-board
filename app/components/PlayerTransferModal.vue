@@ -118,6 +118,35 @@
           </button>
         </div>
 
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <label class="mb-2 block text-xs font-semibold text-gray-700">
+            Lista de nomes (um por linha)
+          </label>
+          <p class="mb-2 text-xs text-gray-500">
+            Sem peso nem gênero: os jogadores entram com valores padrão para
+            você ajustar depois na lista de jogadores.
+          </p>
+          <textarea
+            v-model="nameListText"
+            rows="5"
+            placeholder="João
+Maria
+Pedro"
+            class="w-full resize-none rounded-lg border border-gray-300 bg-white
+              px-3 py-2 text-sm focus:border-blue-500 focus:outline-none
+              focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            @click="handleImportNameList"
+            :disabled="!nameListText.trim()"
+            class="mt-3 w-full rounded-lg bg-green-600 px-4 py-2 text-sm
+              font-semibold text-white transition-colors hover:bg-green-700
+              disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Importar Lista
+          </button>
+        </div>
+
         <div class="rounded-lg border border-gray-200 p-3">
           <label class="mb-2 block text-xs font-semibold text-gray-700">
             Importar via câmera
@@ -205,6 +234,7 @@ const emit = defineEmits<{
 
 const mode = ref<'export' | 'import'>('export')
 const importBase64 = ref('')
+const nameListText = ref('')
 const qrCodeDataUrl = ref('')
 const feedbackMessage = ref('')
 const feedbackType = ref<'success' | 'error'>('success')
@@ -335,6 +365,30 @@ const handleImportBase64 = async () => {
   } catch {
     setFeedback('error', 'Base64 inválido ou formato de dados incorreto.')
   }
+}
+
+const handleImportNameList = () => {
+  clearFeedback()
+
+  const names = nameListText.value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+
+  if (names.length === 0) {
+    setFeedback('error', 'Cole ao menos um nome, um por linha.')
+    return
+  }
+
+  const result = store.importPlayersMerge(names.map((name) => ({ name })))
+  nameListText.value = ''
+
+  setFeedback(
+    'success',
+    `${result.addedCount} adicionado${result.addedCount === 1 ? '' : 's'}, ` +
+      `${result.skippedCount} ignorado${result.skippedCount === 1 ? '' : 's'} ` +
+      `(duplicado ou vazio). Nível e gênero entraram com valor padrão — ajuste na lista de jogadores.`,
+  )
 }
 
 type BarcodeDetectorResult = {
