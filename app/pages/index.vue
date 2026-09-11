@@ -91,31 +91,6 @@
           class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8"
         />
       </button>
-
-      <!-- Botão de Orientação -->
-      <button
-        @click="handleChooseOrientation"
-        :class="[
-          `flex h-10 w-10 cursor-pointer items-center justify-center
-          rounded-full shadow-xl transition-colors`,
-          isLandscape
-            ? 'sm:h-12 sm:w-12 md:h-14 md:w-14'
-            : 'h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16',
-          isLandscape
-            ? 'bg-blue-700 hover:bg-blue-800'
-            : 'bg-red-700 hover:bg-red-800',
-        ]"
-        :title="
-          preferredOrientation === 'landscape'
-            ? 'Orientação atual: horizontal'
-            : 'Orientação atual: vertical'
-        "
-      >
-        <Icon
-          name="heroicons:device-phone-mobile"
-          class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8"
-        />
-      </button>
     </div>
 
     <!-- Container dos Placares -->
@@ -156,56 +131,11 @@
 
 <script setup lang="ts">
 const store = useScoreboardStore()
-const {
-  isLandscape,
-  preferredOrientation,
-  setPreferredOrientation,
-  enableOrientationLock,
-  disableOrientationLock,
-} = useOrientation()
-const { openPrompt } = usePrompt()
+const { isLandscape } = useOrientation()
 
 const showDrawModal = ref(false)
 const showViewModal = ref(false)
 const showSelectorModal = ref(false)
-
-const handleChooseOrientation = async () => {
-  const selected = await openPrompt({
-    title: 'Escolher orientação do placar',
-    message: 'O placar ficará travado na orientação escolhida nesta tela.',
-    options: [
-      {
-        label: 'Horizontal',
-        value: 'landscape',
-        tone: 'primary',
-      },
-      {
-        label: 'Vertical',
-        value: 'portrait',
-        tone: 'primary',
-      },
-      {
-        label: 'Cancelar',
-        value: 'cancel',
-        tone: 'neutral',
-      },
-    ],
-    closeOnBackdrop: true,
-    closeValue: 'cancel',
-  })
-
-  if (selected === 'landscape' || selected === 'portrait') {
-    setPreferredOrientation(selected)
-  }
-}
-
-onMounted(() => {
-  enableOrientationLock()
-})
-
-onUnmounted(() => {
-  disableOrientationLock()
-})
 
 // Atualiza a cor do tema dinamicamente baseado na orientação
 watch(
