@@ -8,7 +8,9 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@nuxt/fonts": "0.12.1",
@@ -30,7 +32,8 @@
     "prettier-plugin-classnames": "^0.8.5",
     "prettier-plugin-merge": "^0.8.0",
     "prettier-plugin-multiline-arrays": "^4.0.3",
-    "prettier-plugin-tailwindcss": "^0.7.1"
+    "prettier-plugin-tailwindcss": "^0.7.1",
+    "vitest": "^5.0.0"
   },
   "packageManager": "pnpm@12.4.1"
 }
