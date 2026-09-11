@@ -37,6 +37,15 @@
               />
             </div>
           </div>
+          <div class="shrink-0">
+            <label class="mb-1 block text-xs font-medium text-gray-700"
+              >Gênero</label
+            >
+            <GenderToggle
+              :model-value="newPlayerGender"
+              @update="newPlayerGender = $event"
+            />
+          </div>
           <div class="flex">
             <button
               type="submit"
@@ -150,6 +159,15 @@
               />
             </div>
 
+            <!-- Gênero -->
+            <div class="shrink-0">
+              <GenderToggle
+                :model-value="player.gender"
+                @update="store.updatePlayer(player.id, { gender: $event })"
+                size="sm"
+              />
+            </div>
+
             <!-- Botão Remover -->
             <button
               @click="handleRemovePlayer(player.id)"
@@ -167,7 +185,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Player } from '~/stores/scoreboard'
+import type { Gender, Player } from '~/stores/scoreboard'
 
 const store = useScoreboardStore()
 const { askConfirm } = usePrompt()
@@ -177,6 +195,7 @@ const { truncateText } = useFormatters()
 // Formulário de novo jogador
 const newPlayerName = ref('')
 const newPlayerWeight = ref(3)
+const newPlayerGender = ref<Gender>('M')
 
 // Filtro
 const showOnlyEnabled = ref(false)
@@ -199,9 +218,10 @@ const filteredPlayers = computed(() => {
 
 const handleAddPlayer = () => {
   if (newPlayerName.value.trim()) {
-    store.addPlayer(newPlayerName.value, newPlayerWeight.value)
+    store.addPlayer(newPlayerName.value, newPlayerWeight.value, newPlayerGender.value)
     newPlayerName.value = ''
     newPlayerWeight.value = 3
+    newPlayerGender.value = 'M'
   }
 }
 

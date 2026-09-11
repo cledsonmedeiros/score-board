@@ -117,6 +117,7 @@
                 >👥 {{ team.members.length }}
                 {{ team.members.length === 1 ? 'jogador' : 'jogadores' }}</span
               >
+              <span>{{ genderSummary(team) }}</span>
               <span
                 >⚖️
                 {{
@@ -224,7 +225,7 @@
                 <div class="flex-1">
                   <p class="font-semibold text-gray-800">Balanceado</p>
                   <p class="text-xs text-gray-600">
-                    Distribui jogadores balanceando por peso
+                    Equilibra habilidade e gênero entre as equipes
                   </p>
                 </div>
               </label>
@@ -247,7 +248,7 @@
                 <div class="flex-1">
                   <p class="font-semibold text-gray-800">Aleatório</p>
                   <p class="text-xs text-gray-600">
-                    Distribui jogadores de forma aleatória
+                    Sorteia livremente, só equilibrando gênero
                   </p>
                 </div>
               </label>
@@ -517,6 +518,7 @@
                 >👥 {{ team.members.length }}
                 {{ team.members.length === 1 ? 'jogador' : 'jogadores' }}</span
               >
+              <span>{{ genderSummary(team) }}</span>
               <span
                 >⚖️
                 {{
@@ -651,6 +653,12 @@ const availableConstraintPlayerB = computed(() => {
     (player) => player.id !== constraintPlayerAId.value,
   )
 })
+
+const genderSummary = (team: Team) => {
+  const femaleCount = team.members.filter((m) => m.gender === 'F').length
+  const maleCount = team.members.length - femaleCount
+  return `♂ ${maleCount} · ♀ ${femaleCount}`
+}
 
 const cannotPairRulesWithPlayers = computed(() => {
   return store.cannotPairRules.map((rule) => {

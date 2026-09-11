@@ -23,6 +23,32 @@
         </button>
       </div>
 
+      <!-- Aviso de troca de jogadores -->
+      <div
+        v-if="teams.some((t) => t.members.length > 0)"
+        class="mb-3 flex items-center justify-between gap-2 rounded-lg
+          bg-indigo-50 p-3 text-xs text-indigo-800"
+      >
+        <p>
+          <span v-if="!selected">
+            Toque em um jogador e depois em outro de outra equipe para
+            trocá-los.
+          </span>
+          <span v-else>
+            Trocando <strong>{{ selected.player.name }}</strong>. Toque em um
+            jogador de outra equipe.
+          </span>
+        </p>
+        <button
+          v-if="selected"
+          @click="selected = null"
+          class="shrink-0 rounded-full bg-white px-2 py-1 font-semibold
+            text-indigo-700 shadow-sm hover:bg-indigo-100"
+        >
+          Cancelar
+        </button>
+      </div>
+
       <!-- Lista de Equipes -->
       <div
         v-if="teams.some((t) => t.members.length > 0)"
@@ -62,12 +88,21 @@
             {{ team.name }}
           </h3>
           <div class="mb-2 grid flex-1 grid-cols-2 content-start gap-2">
-            <PlayerBadge
+            <button
               v-for="member in team.members"
               :key="member.id"
-              :player="member"
-              layout="vertical"
-            />
+              type="button"
+              @click="handlePlayerClick(index, member)"
+              class="rounded-lg text-left transition-transform
+                hover:scale-105"
+              :class="
+                isSelected(member)
+                  ? 'ring-2 ring-indigo-500 ring-offset-1'
+                  : ''
+              "
+            >
+              <PlayerBadge :player="member" layout="vertical" />
+            </button>
           </div>
           <!-- Info da Equipe -->
           <div
@@ -78,15 +113,13 @@
               >👥 {{ team.members.length }}
               {{ team.members.length === 1 ? 'jogador' : 'jogadores' }}</span
             >
+            <span>{{ genderSummary(team) }}</span>
             <span
               >⚖️
               {{
                 team.members.reduce((sum, m) => sum + m.weight, 0).toFixed(1)
               }}</span
             >
-            <!-- <span class="ml-auto">
-              🏆 {{ team.score }} {{ team.score === 1 ? 'ponto' : 'pontos' }}
-            </span> -->
           </div>
         </div>
       </div>
@@ -130,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Team } from '~/stores/scoreboard'
+import type { Player, Team } from '~/stores/scoreboard'
 
 defineEmits<{
   close: []
@@ -139,6 +172,40 @@ defineEmits<{
 const props = defineProps<{
   teams: Team[]
 }>()
+
+const store = useScoreboardStore()
+
+// Troca de jogadores entre equipes
+const selected = ref<{ teamIndex: number; player: Player } | null>(null)
+
+const isSelected = (player: Player) => selected.value?.player.id === player.id
+
+const handlePlayerClick = (teamIndex: number, player: Player) => {
+  if (!selected.value) {
+    selected.value = { teamIndex, player }
+    return
+  }
+
+  if (selected.value.player.id === player.id) {
+    selected.value = null
+    return
+  }
+
+  if (selected.value.teamIndex === teamIndex) {
+    // Troca a seleção para outro jogador da mesma equipe
+    selected.value = { teamIndex, player }
+    return
+  }
+
+  store.swapPlayers(selected.value.player.id, player.id)
+  selected.value = null
+}
+
+const genderSummary = (team: Team) => {
+  const femaleCount = team.members.filter((m) => m.gender === 'F').length
+  const maleCount = team.members.length - femaleCount
+  return `♂ ${maleCount} · ♀ ${femaleCount}`
+}
 
 const shareTeams = async () => {
   const teamsWithMembers = props.teams.filter((t) => t.members.length > 0)

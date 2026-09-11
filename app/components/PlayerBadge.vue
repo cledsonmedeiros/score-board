@@ -7,7 +7,12 @@
     <span
       class="max-w-full truncate text-center text-xs font-medium text-gray-800"
       :title="player.name"
-      >{{ player.name }}</span
+      ><span
+        :class="genderColor"
+        class="font-bold"
+        >{{ genderSymbol }}</span
+      >
+      {{ player.name }}</span
     >
     <StarRating :model-value="player.weight" :disabled="true" size="sm" />
   </div>
@@ -20,7 +25,12 @@
     <span
       class="max-w-[120px] truncate font-medium text-gray-800"
       :title="player.name"
-      >{{ player.name }}</span
+      ><span
+        :class="genderColor"
+        class="font-bold"
+        >{{ genderSymbol }}</span
+      >
+      {{ player.name }}</span
     >
     <StarRating :model-value="player.weight" :disabled="true" size="sm" />
   </span>
@@ -29,8 +39,13 @@
 <script setup lang="ts">
 import type { Player } from '~/stores/scoreboard'
 
-defineProps<{
+const props = defineProps<{
   player: Player
   layout?: 'horizontal' | 'vertical'
 }>()
+
+const genderSymbol = computed(() => (props.player.gender === 'F' ? '♀' : '♂'))
+const genderColor = computed(() =>
+  props.player.gender === 'F' ? 'text-pink-500' : 'text-blue-500',
+)
 </script>
