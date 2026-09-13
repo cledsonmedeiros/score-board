@@ -30,10 +30,9 @@
               class="flex h-[38px] items-center rounded-lg border
                 border-gray-300 bg-white px-3"
             >
-              <StarRating
+              <WeightSlider
                 :model-value="newPlayerWeight"
                 @update="newPlayerWeight = $event"
-                size="sm"
               />
             </div>
           </div>
@@ -92,91 +91,115 @@
             v-for="player in filteredPlayers"
             :key="player.id"
             :class="[
-              'flex items-center gap-3 border-b p-4 transition-colors',
+              `flex flex-col gap-2 border-b p-4 transition-colors sm:flex-row
+              sm:items-center sm:gap-3`,
               player.enabled
                 ? 'bg-white hover:bg-gray-50'
                 : 'bg-gray-100 opacity-60',
             ]"
           >
-            <!-- Toggle Habilitado/Desabilitado -->
-            <button
-              @click="store.togglePlayerEnabled(player.id)"
-              :class="[
-                `flex h-10 w-10 shrink-0 items-center justify-center
-                rounded-full transition-colors`,
-                player.enabled
-                  ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                  : 'bg-gray-200 text-gray-400 hover:bg-gray-300',
-              ]"
-              :title="
-                player.enabled ? 'Desabilitar jogador' : 'Habilitar jogador'
-              "
-            >
-              <Icon
-                :name="player.enabled ? 'heroicons:check' : 'heroicons:x-mark'"
-                class="h-6 w-6"
-              />
-            </button>
+            <!-- Linha 1 no mobile (vira parte da linha única a partir de sm):
+              habilitar/desabilitar, nome e remover -->
+            <div class="flex items-center gap-3 sm:contents">
+              <!-- Toggle Habilitado/Desabilitado -->
+              <button
+                @click="store.togglePlayerEnabled(player.id)"
+                :class="[
+                  `flex h-10 w-10 shrink-0 items-center justify-center
+                  rounded-full transition-colors`,
+                  player.enabled
+                    ? 'bg-green-100 text-green-600 hover:bg-green-200'
+                    : 'bg-gray-200 text-gray-400 hover:bg-gray-300',
+                ]"
+                :title="
+                  player.enabled ? 'Desabilitar jogador' : 'Habilitar jogador'
+                "
+              >
+                <Icon
+                  :name="
+                    player.enabled ? 'heroicons:check' : 'heroicons:x-mark'
+                  "
+                  class="h-6 w-6"
+                />
+              </button>
 
-            <!-- Nome (editável) -->
-            <div class="min-w-0 flex-1">
-              <input
-                v-if="editingPlayerId === player.id"
-                :ref="setEditInputRef"
-                v-model="editingPlayerName"
-                @blur="savePlayerEdit(player.id)"
-                @keyup.enter="savePlayerEdit(player.id)"
-                @keyup.esc="cancelEdit"
-                type="text"
-                class="w-full rounded border border-blue-300 px-2 py-1
-                  focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <div v-else class="flex items-center gap-2">
-                <span
-                  :class="[
-                    'text-sm font-medium',
-                    player.enabled ? 'text-gray-800' : 'text-gray-500',
-                  ]"
-                  :title="player.name"
-                  >{{ truncateText(player.name) }}</span
-                >
-                <button
-                  @click="startEdit(player)"
-                  class="shrink-0 text-gray-400 hover:text-blue-600"
-                  title="Editar nome"
-                >
-                  <Icon name="heroicons:pencil-square" class="h-4 w-4" />
-                </button>
+              <!-- Nome (editável) -->
+              <div class="min-w-0 flex-1">
+                <input
+                  v-if="editingPlayerId === player.id"
+                  :ref="setEditInputRef"
+                  v-model="editingPlayerName"
+                  @blur="savePlayerEdit(player.id)"
+                  @keyup.enter="savePlayerEdit(player.id)"
+                  @keyup.esc="cancelEdit"
+                  type="text"
+                  class="w-full rounded border border-blue-300 px-2 py-1
+                    focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <div v-else class="flex items-center gap-2">
+                  <span
+                    :class="[
+                      'truncate text-sm font-medium',
+                      player.enabled ? 'text-gray-800' : 'text-gray-500',
+                    ]"
+                    :title="player.name"
+                    >{{ truncateText(player.name) }}</span
+                  >
+                  <button
+                    @click="startEdit(player)"
+                    class="shrink-0 text-gray-400 hover:text-blue-600"
+                    title="Editar nome"
+                  >
+                    <Icon name="heroicons:pencil-square" class="h-4 w-4" />
+                  </button>
+                </div>
               </div>
+
+              <!-- Remover: no mobile fica junto do nome; a partir de sm, vai
+                para o fim da linha (segunda cópia abaixo) -->
+              <button
+                @click="handleRemovePlayer(player.id)"
+                class="flex h-8 w-8 shrink-0 items-center justify-center
+                  rounded-full text-red-600 transition-colors hover:bg-red-50
+                  sm:hidden"
+                title="Remover jogador"
+              >
+                <Icon name="heroicons:trash" class="h-5 w-5" />
+              </button>
             </div>
 
-            <!-- Peso -->
-            <div class="shrink-0">
-              <StarRating
-                :model-value="player.weight"
-                @update="store.updatePlayer(player.id, { weight: $event })"
-                size="sm"
-              />
-            </div>
+            <!-- Linha 2 no mobile (nível e gênero); a partir de sm, junta-se
+              à linha única acima. flex-wrap é uma rede de segurança: se
+              ainda assim não couber (telas muito estreitas/zoom), o gênero
+              quebra para uma 3ª linha em vez de ser cortado pelo
+              overflow-x-hidden da lista. -->
+            <div class="flex flex-wrap items-center gap-3 sm:contents">
+              <div class="shrink-0">
+                <WeightSlider
+                  :model-value="player.weight"
+                  @update="store.updatePlayer(player.id, { weight: $event })"
+                />
+              </div>
 
-            <!-- Gênero -->
-            <div class="shrink-0">
-              <GenderToggle
-                :model-value="player.gender"
-                @update="store.updatePlayer(player.id, { gender: $event })"
-                size="sm"
-              />
-            </div>
+              <div class="shrink-0">
+                <GenderToggle
+                  :model-value="player.gender"
+                  @update="store.updatePlayer(player.id, { gender: $event })"
+                  size="sm"
+                />
+              </div>
 
-            <!-- Botão Remover -->
-            <button
-              @click="handleRemovePlayer(player.id)"
-              class="flex h-8 w-8 shrink-0 items-center justify-center
-                rounded-full text-red-600 transition-colors hover:bg-red-50"
-              title="Remover jogador"
-            >
-              <Icon name="heroicons:trash" class="h-5 w-5" />
-            </button>
+              <!-- Remover: cópia visível só a partir de sm (ver linha 1) -->
+              <button
+                @click="handleRemovePlayer(player.id)"
+                class="hidden h-8 w-8 shrink-0 items-center justify-center
+                  rounded-full text-red-600 transition-colors hover:bg-red-50
+                  sm:flex"
+                title="Remover jogador"
+              >
+                <Icon name="heroicons:trash" class="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

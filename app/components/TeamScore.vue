@@ -24,7 +24,7 @@
     <div
       v-if="team.members && team.members.length > 0"
       :class="[
-        'absolute px-3 sm:px-4 md:px-8',
+        `absolute max-h-[18dvh] overflow-hidden px-3 sm:px-4 md:px-8`,
         position === 'top'
           ? 'left-0 right-0 top-8 sm:top-12 md:top-16'
           : 'bottom-10 left-0 right-0 sm:bottom-14 md:bottom-20',
@@ -41,8 +41,9 @@
             sm:py-1 md:px-4 md:py-1.5"
         >
           <span
-            class="max-w-20 truncate text-[10px] font-semibold text-white
-              sm:max-w-[120px] sm:text-xs md:max-w-[180px] md:text-sm"
+            class="block max-w-20 truncate text-[10px] font-semibold
+              text-white sm:max-w-[120px] sm:text-xs md:max-w-[180px]
+              md:text-sm"
             :title="member.name"
             >{{ member.name }}</span
           >
@@ -54,8 +55,10 @@
     <Transition name="score-change" mode="out-in">
       <div
         :key="team.score"
-        class="score text-[11rem] font-black leading-none text-white
-          sm:text-[12.5rem]"
+        :class="[
+          'score font-black leading-none text-white',
+          scoreSizeClass,
+        ]"
       >
         {{ team.score }}
       </div>
@@ -90,6 +93,15 @@ const position = computed(() => {
     return isLandscape.value ? 'right' : 'bottom'
   }
 })
+
+// Em paisagem, o painel usa a altura inteira da tela — que em um celular
+// deitado é bem curta. O placar fixo de 11-12.5rem (~176-200px) não cabia
+// junto com o nome/membros da equipe sem sobrepor. Em retrato o painel é
+// metade da altura da tela (bem mais alto na prática), então mantém o
+// tamanho grande original.
+const scoreSizeClass = computed(() =>
+  isLandscape.value ? 'text-[7rem] sm:text-[8rem]' : 'text-[11rem] sm:text-[12.5rem]',
+)
 </script>
 
 <style scoped>
