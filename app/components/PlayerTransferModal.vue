@@ -161,7 +161,8 @@ Pedro"
           </button>
 
           <p v-if="!isCameraSupported" class="mt-2 text-xs text-amber-700">
-            Seu navegador não suporta leitura de QR por câmera neste modo.
+            Este navegador não expõe acesso à câmera aqui (verifique se está
+            em HTTPS).
           </p>
 
           <div v-if="cameraActive" class="mt-3 overflow-hidden rounded-lg border border-gray-200 bg-black">
@@ -224,6 +225,7 @@ Pedro"
 
 <script setup lang="ts">
 import QRCode from 'qrcode'
+import jsQR from 'jsqr'
 
 const store = useScoreboardStore()
 const { openPrompt } = usePrompt()
@@ -391,68 +393,29 @@ const handleImportNameList = () => {
   )
 }
 
-type BarcodeDetectorResult = {
-  rawValue?: string
-}
-
-type BarcodeDetectorInstance = {
-  detect: (source: ImageBitmapSource) => Promise<BarcodeDetectorResult[]>
-}
-
-type BarcodeDetectorConstructor = new (options?: {
-  formats?: string[]
-}) => BarcodeDetectorInstance
-
-type BarcodeDetectorStatic = BarcodeDetectorConstructor & {
-  getSupportedFormats?: () => Promise<string[]>
-}
-
+// Decodificação via jsQR (JS puro), em vez da API nativa BarcodeDetector:
+// o BarcodeDetector não existe (ou não suporta QR Code) em boa parte dos
+// Chrome/Edge/Safari de desktop — inclusive no Chrome do macOS — o que
+// impedia a câmera de abrir mesmo em HTTPS. jsQR funciona em qualquer
+// navegador que suporte câmera + canvas.
 const isCameraSupported = ref(false)
 
-const checkCameraSupport = async () => {
-  if (!import.meta.client) {
-    isCameraSupported.value = false
-    return false
-  }
-
+const checkCameraSupport = () => {
   const hasCameraApi =
+    import.meta.client &&
     typeof navigator !== 'undefined' &&
     !!navigator.mediaDevices?.getUserMedia
 
-  const detectorConstructor = (
-    window as Window & { BarcodeDetector?: BarcodeDetectorStatic }
-  ).BarcodeDetector
-
-  if (!hasCameraApi || !detectorConstructor) {
-    isCameraSupported.value = false
-    return false
-  }
-
-  if (typeof detectorConstructor.getSupportedFormats === 'function') {
-    try {
-      const supportedFormats = await detectorConstructor.getSupportedFormats()
-      const hasQrSupport = supportedFormats.includes('qr_code')
-      isCameraSupported.value = hasQrSupport
-      return hasQrSupport
-    } catch {
-      isCameraSupported.value = false
-      return false
-    }
-  }
-
-  isCameraSupported.value = true
-  return true
+  isCameraSupported.value = hasCameraApi
+  return hasCameraApi
 }
 
-const detectQrInGuideArea = async (
-  detector: BarcodeDetectorInstance,
-  videoElement: HTMLVideoElement,
-) => {
+const detectQrInGuideArea = (videoElement: HTMLVideoElement): string | null => {
   const wrapperElement = cameraWrapperRef.value
   const frameElement = guideFrameRef.value
 
   if (!wrapperElement || !frameElement) {
-    return [] as BarcodeDetectorResult[]
+    return null
   }
 
   const sourceWidth = videoElement.videoWidth
@@ -461,7 +424,7 @@ const detectQrInGuideArea = async (
   const containerHeight = wrapperElement.clientHeight
 
   if (!sourceWidth || !sourceHeight || !containerWidth || !containerHeight) {
-    return [] as BarcodeDetectorResult[]
+    return null
   }
 
   const frameRect = frameElement.getBoundingClientRect()
@@ -496,16 +459,16 @@ const detectQrInGuideArea = async (
   const cropHeight = Math.floor(cropBottom - cropTop)
 
   if (cropWidth < 10 || cropHeight < 10) {
-    return [] as BarcodeDetectorResult[]
+    return null
   }
 
   const canvas = document.createElement('canvas')
   canvas.width = cropWidth
   canvas.height = cropHeight
 
-  const context = canvas.getContext('2d')
+  const context = canvas.getContext('2d', { willReadFrequently: true })
   if (!context) {
-    return [] as BarcodeDetectorResult[]
+    return null
   }
 
   context.drawImage(
@@ -520,33 +483,26 @@ const detectQrInGuideArea = async (
     cropHeight,
   )
 
-  return detector.detect(canvas)
+  const imageData = context.getImageData(0, 0, cropWidth, cropHeight)
+  const result = jsQR(imageData.data, imageData.width, imageData.height, {
+    inversionAttempts: 'attemptBoth',
+  })
+
+  return result?.data?.trim() || null
 }
 
 const startCameraScan = async () => {
   clearFeedback()
 
-  const hasSupport = await checkCameraSupport()
-
-  if (!hasSupport) {
+  if (!checkCameraSupport()) {
     setFeedback(
       'error',
-      'Leitura por câmera não suportada neste navegador.',
+      'Este navegador não permite acesso à câmera (é preciso HTTPS).',
     )
     return
   }
 
   try {
-    const detectorConstructor = (
-      window as Window & { BarcodeDetector?: BarcodeDetectorConstructor }
-    ).BarcodeDetector
-
-    if (!detectorConstructor) {
-      throw new Error('BarcodeDetector indisponível')
-    }
-
-    const detector = new detectorConstructor({ formats: ['qr_code'] })
-
     mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' },
       audio: false,
@@ -568,8 +524,7 @@ const startCameraScan = async () => {
       isDetecting = true
 
       try {
-          const result = await detectQrInGuideArea(detector, videoRef.value)
-        const rawValue = result[0]?.rawValue?.trim()
+        const rawValue = detectQrInGuideArea(videoRef.value)
 
         if (!rawValue) {
           return
@@ -597,32 +552,44 @@ const startCameraScan = async () => {
       } finally {
         isDetecting = false
       }
-    }, 500)
-  } catch {
+    }, 400)
+  } catch (error) {
     stopCameraScan()
-    setFeedback(
-      'error',
-      'Não foi possível iniciar a câmera para leitura de QR Code.',
-    )
+
+    if (error instanceof DOMException && error.name === 'NotAllowedError') {
+      setFeedback(
+        'error',
+        'Permissão de câmera negada. Habilite o acesso à câmera para este site nas configurações do navegador/sistema.',
+      )
+    } else {
+      setFeedback(
+        'error',
+        'Não foi possível iniciar a câmera para leitura de QR Code.',
+      )
+    }
   }
 }
 
 const decodeQrFromImage = async (file: File) => {
-  const detectorConstructor = (
-    window as Window & { BarcodeDetector?: BarcodeDetectorConstructor }
-  ).BarcodeDetector
-
-  if (!detectorConstructor) {
-    throw new Error('BarcodeDetector não suportado')
-  }
-
-  const detector = new detectorConstructor({ formats: ['qr_code'] })
   const imageBitmap = await createImageBitmap(file)
 
   try {
-    const result = await detector.detect(imageBitmap)
-    const rawValue = result[0]?.rawValue?.trim()
+    const canvas = document.createElement('canvas')
+    canvas.width = imageBitmap.width
+    canvas.height = imageBitmap.height
 
+    const context = canvas.getContext('2d', { willReadFrequently: true })
+    if (!context) {
+      throw new Error('Não foi possível processar a imagem')
+    }
+
+    context.drawImage(imageBitmap, 0, 0)
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
+    const result = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: 'attemptBoth',
+    })
+
+    const rawValue = result?.data?.trim()
     if (!rawValue) {
       throw new Error('QR Code não encontrado')
     }
