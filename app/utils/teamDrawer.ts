@@ -20,8 +20,6 @@ export function getPairKey(playerAId: string, playerBId: string) {
  * cada um vai para a primeira equipe elegível, sem considerar peso.
  */
 export class TeamDrawer {
-  private static readonly MAX_DRAW_ATTEMPTS = 20
-
   private readonly players: Player[]
   private readonly targetTeamSizes: number[]
   private readonly cannotPairLookup: Map<string, Set<string>>
@@ -74,33 +72,25 @@ export class TeamDrawer {
       (size, i) => size - (femaleTargets[i] ?? 0),
     )
 
-    for (let attempt = 0; attempt < TeamDrawer.MAX_DRAW_ATTEMPTS; attempt++) {
-      this.resetTeams()
+    this.resetTeams()
 
-      try {
-        // Distribui primeiro os homens e depois as mulheres, ambos respeitando
-        // a cota de gênero calculada por equipe. O peso acumulado é compartilhado
-        // entre as duas passagens, então o balanceamento por habilidade continua
-        // valendo entre todos os jogadores, não só dentro de cada gênero.
-        this.assignGroup(
-          malePlayers,
-          maleTargets,
-          this.genderCounts.M,
-          weighted,
-        )
-        this.assignGroup(
-          femalePlayers,
-          femaleTargets,
-          this.genderCounts.F,
-          weighted,
-        )
+    // Distribui primeiro os homens e depois as mulheres, ambos respeitando
+    // a cota de gênero calculada por equipe. O peso acumulado é compartilhado
+    // entre as duas passagens, então o balanceamento por habilidade continua
+    // valendo entre todos os jogadores, não só dentro de cada gênero.
+    const orderedPlayers = [
+      ...this.orderPlayers(malePlayers, weighted),
+      ...this.orderPlayers(femalePlayers, weighted),
+    ]
+    const assigned = this.assignPlayers(
+      orderedPlayers,
+      maleTargets,
+      femaleTargets,
+      weighted,
+    )
 
-        return this.teams
-      } catch (error) {
-        if (attempt === TeamDrawer.MAX_DRAW_ATTEMPTS - 1) {
-          throw error
-        }
-      }
+    if (assigned) {
+      return this.teams
     }
 
     throw new Error(
@@ -221,97 +211,97 @@ export class TeamDrawer {
     return targets
   }
 
-  private assignGroup(
-    players: Player[],
-    genderTargets: number[],
-    genderCounts: number[],
-    weighted: boolean,
-  ) {
+  private orderPlayers(players: Player[], weighted: boolean) {
     const shuffled = [...players].sort(() => Math.random() - 0.5)
-    const ordered = weighted
-      ? shuffled.sort((a, b) => b.weight - a.weight)
-      : shuffled
+    return weighted ? shuffled.sort((a, b) => b.weight - a.weight) : shuffled
+  }
 
-    ordered.forEach((player) => {
-      const teamIndex =
-        this.pickTeamForPlayer(
-          player,
-          genderTargets,
-          genderCounts,
-          weighted,
-          true,
-        ) ??
-        this.pickTeamForPlayer(
-          player,
-          genderTargets,
-          genderCounts,
-          weighted,
-          false,
-        )
+  private assignPlayers(
+    players: Player[],
+    maleTargets: number[],
+    femaleTargets: number[],
+    weighted: boolean,
+    playerIndex = 0,
+  ): boolean {
+    if (playerIndex >= players.length) return true
 
-      if (teamIndex === null) {
-        throw new Error(
-          'Não foi possível montar equipes com as restrições atuais. Revise as regras de jogadores que não podem jogar juntos.',
-        )
-      }
+    const player = players[playerIndex]
+    if (!player) return true
 
+    const genderTargets = this.isFemale(player) ? femaleTargets : maleTargets
+    const genderCounts = this.isFemale(player)
+      ? this.genderCounts.F
+      : this.genderCounts.M
+
+    const teamIndexes = this.getTeamIndexesForPlayer(
+      player,
+      genderTargets,
+      genderCounts,
+      weighted,
+    )
+
+    for (const teamIndex of teamIndexes) {
       const team = this.teams[teamIndex]
-      if (!team) return
+      if (!team) continue
 
       team.members.push({ ...player })
       this.teamWeights[teamIndex] =
         (this.teamWeights[teamIndex] ?? 0) + player.weight
       genderCounts[teamIndex] = (genderCounts[teamIndex] ?? 0) + 1
-    })
+
+      if (
+        this.assignPlayers(
+          players,
+          maleTargets,
+          femaleTargets,
+          weighted,
+          playerIndex + 1,
+        )
+      ) {
+        return true
+      }
+
+      team.members.pop()
+      this.teamWeights[teamIndex] =
+        (this.teamWeights[teamIndex] ?? 0) - player.weight
+      genderCounts[teamIndex] = (genderCounts[teamIndex] ?? 0) - 1
+    }
+
+    return false
   }
 
-  /**
-   * Escolhe a equipe de destino para um jogador.
-   * - `weighted`: escolhe a equipe com menor peso acumulado (desempate: menos membros).
-   * - sem `weighted`: escolhe a primeira equipe elegível (ordem fixa), para o sorteio aleatório.
-   * - `respectGenderQuota`: quando falso, ignora a cota de gênero (usado como fallback).
-   */
-  private pickTeamForPlayer(
+  private getTeamIndexesForPlayer(
     player: Player,
     genderTargets: number[],
     genderCounts: number[],
     weighted: boolean,
-    respectGenderQuota: boolean,
-  ): number | null {
-    let bestIndex: number | null = null
-    let bestWeight = Infinity
+  ): number[] {
+    const indexes = this.teams
+      .map((_, index) => index)
+      .filter((index) => {
+        const team = this.teams[index]
+        const maxSize = this.targetTeamSizes[index] ?? 0
+        return (
+          team !== undefined &&
+          team.members.length < maxSize &&
+          this.canJoinTeam(player.id, team)
+        )
+      })
 
-    for (let i = 0; i < this.teams.length; i++) {
-      const team = this.teams[i]
-      const maxSize = this.targetTeamSizes[i] ?? 0
+    return indexes.sort((a, b) => {
+      const aWithinQuota = (genderCounts[a] ?? 0) < (genderTargets[a] ?? 0)
+      const bWithinQuota = (genderCounts[b] ?? 0) < (genderTargets[b] ?? 0)
 
-      if (!team || team.members.length >= maxSize) continue
-      if (
-        respectGenderQuota &&
-        (genderCounts[i] ?? 0) >= (genderTargets[i] ?? 0)
-      ) {
-        continue
-      }
-      if (!this.canJoinTeam(player.id, team)) continue
+      if (aWithinQuota !== bWithinQuota) return aWithinQuota ? -1 : 1
+      if (!weighted) return a - b
 
-      if (!weighted) {
-        return i
-      }
-
-      const teamWeight = this.teamWeights[i] ?? 0
-      const currentBest = bestIndex === null ? null : this.teams[bestIndex]
-
-      if (
-        teamWeight < bestWeight ||
-        (teamWeight === bestWeight &&
-          currentBest &&
-          team.members.length < currentBest.members.length)
-      ) {
-        bestWeight = teamWeight
-        bestIndex = i
-      }
-    }
-
-    return bestIndex
+      const weightDifference =
+        (this.teamWeights[a] ?? 0) - (this.teamWeights[b] ?? 0)
+      if (weightDifference !== 0) return weightDifference
+      return (
+        (this.teams[a]?.members.length ?? 0) -
+        (this.teams[b]?.members.length ?? 0)
+      )
+    })
   }
 }
