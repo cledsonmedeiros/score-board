@@ -160,6 +160,20 @@ export default defineNuxtConfig({
           name: 'theme-color',
           content: '#EF4444',
         },
+        // Safari/iPadOS não confia só no manifest.json para o modo
+        // standalone e o nome do ícone — precisa dessas tags dedicadas.
+        {
+          name: 'apple-mobile-web-app-capable',
+          content: 'yes',
+        },
+        {
+          name: 'apple-mobile-web-app-title',
+          content: 'ScoreBoard',
+        },
+        {
+          name: 'apple-mobile-web-app-status-bar-style',
+          content: 'black-translucent',
+        },
       ],
       link: [
         {
