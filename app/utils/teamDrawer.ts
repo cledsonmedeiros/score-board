@@ -1,4 +1,4 @@
-import type { CannotPairRule, Player, Team } from '~/stores/scoreboard'
+import type { CannotPairRule, Player, Team } from '../stores/scoreboard'
 
 export type DrawStrategy = 'balanced' | 'random'
 
@@ -20,6 +20,8 @@ export function getPairKey(playerAId: string, playerBId: string) {
  * cada um vai para a primeira equipe elegível, sem considerar peso.
  */
 export class TeamDrawer {
+  private static readonly MAX_DRAW_ATTEMPTS = 20
+
   private readonly players: Player[]
   private readonly targetTeamSizes: number[]
   private readonly cannotPairLookup: Map<string, Set<string>>
@@ -72,14 +74,47 @@ export class TeamDrawer {
       (size, i) => size - (femaleTargets[i] ?? 0),
     )
 
-    // Distribui primeiro os homens e depois as mulheres, ambos respeitando
-    // a cota de gênero calculada por equipe. O peso acumulado é compartilhado
-    // entre as duas passagens, então o balanceamento por habilidade continua
-    // valendo entre todos os jogadores, não só dentro de cada gênero.
-    this.assignGroup(malePlayers, maleTargets, this.genderCounts.M, weighted)
-    this.assignGroup(femalePlayers, femaleTargets, this.genderCounts.F, weighted)
+    for (let attempt = 0; attempt < TeamDrawer.MAX_DRAW_ATTEMPTS; attempt++) {
+      this.resetTeams()
 
-    return this.teams
+      try {
+        // Distribui primeiro os homens e depois as mulheres, ambos respeitando
+        // a cota de gênero calculada por equipe. O peso acumulado é compartilhado
+        // entre as duas passagens, então o balanceamento por habilidade continua
+        // valendo entre todos os jogadores, não só dentro de cada gênero.
+        this.assignGroup(
+          malePlayers,
+          maleTargets,
+          this.genderCounts.M,
+          weighted,
+        )
+        this.assignGroup(
+          femalePlayers,
+          femaleTargets,
+          this.genderCounts.F,
+          weighted,
+        )
+
+        return this.teams
+      } catch (error) {
+        if (attempt === TeamDrawer.MAX_DRAW_ATTEMPTS - 1) {
+          throw error
+        }
+      }
+    }
+
+    throw new Error(
+      'Não foi possível montar equipes com as restrições atuais. Revise as regras de jogadores que não podem jogar juntos.',
+    )
+  }
+
+  private resetTeams() {
+    this.teams.forEach((team) => {
+      team.members = []
+    })
+    this.teamWeights.fill(0)
+    this.genderCounts.M.fill(0)
+    this.genderCounts.F.fill(0)
   }
 
   private static calculateTeamSizes(
@@ -140,7 +175,8 @@ export class TeamDrawer {
       (size) => (size * totalOfGender) / totalCapacity,
     )
     const targets = rawTargets.map((value) => Math.floor(value))
-    let remaining = totalOfGender - targets.reduce((sum, value) => sum + value, 0)
+    let remaining =
+      totalOfGender - targets.reduce((sum, value) => sum + value, 0)
 
     // Método dos maiores restos: distribui o que sobrou do arredondamento
     // para as equipes com a maior parte fracionária primeiro.
@@ -150,8 +186,16 @@ export class TeamDrawer {
 
     for (const { index } of byFraction) {
       if (remaining <= 0) break
-      if (targets[index] >= (this.targetTeamSizes[index] ?? 0)) continue
-      targets[index]++
+      const target = targets[index]
+      const teamSize = this.targetTeamSizes[index]
+      if (
+        target === undefined ||
+        teamSize === undefined ||
+        target >= teamSize
+      ) {
+        continue
+      }
+      targets[index] = target + 1
       remaining--
     }
 
@@ -160,8 +204,14 @@ export class TeamDrawer {
     let safety = 0
     while (remaining > 0 && safety < this.targetTeamSizes.length * 2) {
       for (let i = 0; i < targets.length && remaining > 0; i++) {
-        if (targets[i] < (this.targetTeamSizes[i] ?? 0)) {
-          targets[i]++
+        const target = targets[i]
+        const teamSize = this.targetTeamSizes[i]
+        if (
+          target !== undefined &&
+          teamSize !== undefined &&
+          target < teamSize
+        ) {
+          targets[i] = target + 1
           remaining--
         }
       }
@@ -184,8 +234,20 @@ export class TeamDrawer {
 
     ordered.forEach((player) => {
       const teamIndex =
-        this.pickTeamForPlayer(player, genderTargets, genderCounts, weighted, true) ??
-        this.pickTeamForPlayer(player, genderTargets, genderCounts, weighted, false)
+        this.pickTeamForPlayer(
+          player,
+          genderTargets,
+          genderCounts,
+          weighted,
+          true,
+        ) ??
+        this.pickTeamForPlayer(
+          player,
+          genderTargets,
+          genderCounts,
+          weighted,
+          false,
+        )
 
       if (teamIndex === null) {
         throw new Error(
@@ -197,7 +259,8 @@ export class TeamDrawer {
       if (!team) return
 
       team.members.push({ ...player })
-      this.teamWeights[teamIndex] = (this.teamWeights[teamIndex] ?? 0) + player.weight
+      this.teamWeights[teamIndex] =
+        (this.teamWeights[teamIndex] ?? 0) + player.weight
       genderCounts[teamIndex] = (genderCounts[teamIndex] ?? 0) + 1
     })
   }
@@ -223,7 +286,10 @@ export class TeamDrawer {
       const maxSize = this.targetTeamSizes[i] ?? 0
 
       if (!team || team.members.length >= maxSize) continue
-      if (respectGenderQuota && (genderCounts[i] ?? 0) >= (genderTargets[i] ?? 0)) {
+      if (
+        respectGenderQuota &&
+        (genderCounts[i] ?? 0) >= (genderTargets[i] ?? 0)
+      ) {
         continue
       }
       if (!this.canJoinTeam(player.id, team)) continue
