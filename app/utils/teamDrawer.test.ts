@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TeamDrawer } from './teamDrawer'
-import type { CannotPairRule, Gender, Player } from '~/stores/scoreboard'
+import type { Gender, Player } from '~/stores/scoreboard'
+import type { PairRule, PairRuleType } from './pairRules'
 
 let nextId = 1
 
@@ -20,9 +21,14 @@ function makePlayer(
   }
 }
 
-function rule(playerA: Player, playerB: Player): CannotPairRule {
+function rule(
+  playerA: Player,
+  playerB: Player,
+  type: PairRuleType = 'cannot',
+): PairRule {
   return {
     id: `${playerA.id}-${playerB.id}`,
+    type,
     playerAId: playerA.id,
     playerBId: playerB.id,
   }
@@ -211,7 +217,119 @@ describe('TeamDrawer', () => {
       const drawer = new TeamDrawer([a!, b!, c!], 2, rules)
 
       expect(() => teamOf(drawer, 'balanced')).toThrow(
-        'Não foi possível montar equipes com as restrições atuais. Revise as regras de jogadores que não podem jogar juntos.',
+        'Não foi possível montar equipes com as restrições atuais.',
+      )
+    })
+  })
+
+  describe('regra de "deve jogar junto"', () => {
+    const RUNS = 50
+
+    function teamIndexOf(teams: { members: Player[] }[], player: Player) {
+      return teams.findIndex((t) => t.members.some((m) => m.id === player.id))
+    }
+
+    it.each(['balanced', 'random'] as const)(
+      'sempre coloca o par na mesma equipe (%s)',
+      (strategy) => {
+        for (let run = 0; run < RUNS; run++) {
+          const players = [5, 5, 4, 3, 2, 1, 1, 3].map((w) => makePlayer(w))
+          const [a, b] = players
+          const drawer = new TeamDrawer(players, 4, [rule(a!, b!, 'must')])
+          const teams = teamOf(drawer, strategy)
+
+          expect(teamIndexOf(teams, a!)).toBe(teamIndexOf(teams, b!))
+          expect(teams.map((t) => t.members.length)).toEqual([4, 4])
+        }
+      },
+    )
+
+    it('aplica a regra de forma transitiva (A com B e B com C => A, B e C juntos)', () => {
+      for (let run = 0; run < RUNS; run++) {
+        const players = Array.from({ length: 9 }, () => makePlayer(3))
+        const [a, b, c] = players
+        const rules = [rule(a!, b!, 'must'), rule(b!, c!, 'must')]
+        const teams = teamOf(new TeamDrawer(players, 3, rules))
+
+        const teamOfA = teamIndexOf(teams, a!)
+        expect(teamIndexOf(teams, b!)).toBe(teamOfA)
+        expect(teamIndexOf(teams, c!)).toBe(teamOfA)
+      }
+    })
+
+    it('combina "deve jogar junto" com "não pode jogar junto"', () => {
+      for (let run = 0; run < RUNS; run++) {
+        const players = Array.from({ length: 6 }, () => makePlayer(3))
+        const [a, b, c] = players
+        // A e B juntos; C não pode com A => C precisa ficar longe dos dois.
+        const rules = [rule(a!, b!, 'must'), rule(a!, c!, 'cannot')]
+        const teams = teamOf(new TeamDrawer(players, 3, rules), 'random')
+
+        expect(teamIndexOf(teams, a!)).toBe(teamIndexOf(teams, b!))
+        expect(teamIndexOf(teams, c!)).not.toBe(teamIndexOf(teams, b!))
+      }
+    })
+
+    it('encaixa o bloco mesmo quando só há vaga completa na equipe maior', () => {
+      // 7 jogadores em times de até 3 => tamanhos [3, 3, 1]. Um trio obrigatório
+      // só cabe numa equipe de 3 e nunca na equipe de 1.
+      for (let run = 0; run < RUNS; run++) {
+        const players = Array.from({ length: 7 }, () => makePlayer(3))
+        const [a, b, c] = players
+        const rules = [rule(a!, b!, 'must'), rule(b!, c!, 'must')]
+        const teams = teamOf(new TeamDrawer(players, 3, rules))
+
+        const trioTeam = teams[teamIndexOf(teams, a!)]!
+        expect(trioTeam.members.map((m) => m.id).sort()).toEqual(
+          [a!.id, b!.id, c!.id].sort(),
+        )
+      }
+    })
+
+    it('respeita a cota de gênero ao alocar um bloco misto', () => {
+      const men = Array.from({ length: 4 }, () => makePlayer(3, 'M'))
+      const women = Array.from({ length: 2 }, () => makePlayer(3, 'F'))
+      const rules = [rule(men[0]!, women[0]!, 'must')]
+      const teams = teamOf(new TeamDrawer([...men, ...women], 3, rules))
+
+      teams.forEach((team) => {
+        expect(genderCounts(team.members)).toEqual({ male: 2, female: 1 })
+      })
+    })
+
+    it('ignora regras com jogadores que não estão no sorteio', () => {
+      const players = Array.from({ length: 4 }, () => makePlayer(3))
+      const outsider = makePlayer(3)
+      const rules = [
+        rule(players[0]!, outsider, 'must'),
+        rule(outsider, players[1]!, 'must'),
+      ]
+      // Sem o jogador ausente, 0 e 1 não ficam ligados: o sorteio só precisa funcionar.
+      const teams = teamOf(new TeamDrawer(players, 2, rules))
+      expect(teams.map((t) => t.members.length)).toEqual([2, 2])
+    })
+
+    it('lança erro quando o grupo é maior que o limite de jogadores por equipe', () => {
+      const [a, b, c, d] = Array.from({ length: 4 }, (_, i) =>
+        makePlayer(3, 'M', `P${i}`),
+      )
+      const rules = [rule(a!, b!, 'must'), rule(b!, c!, 'must')]
+
+      expect(() => new TeamDrawer([a!, b!, c!, d!], 2, rules)).toThrow(
+        'O grupo que deve jogar junto (P0, P1, P2) tem 3 jogadores, mais do que o limite de 2 por equipe.',
+      )
+    })
+
+    it('lança erro quando as regras são contraditórias', () => {
+      const [a, b, c, d] = Array.from({ length: 4 }, () => makePlayer(3))
+      const rules = [
+        rule(a!, b!, 'must'),
+        rule(b!, c!, 'must'),
+        rule(a!, c!, 'cannot'),
+      ]
+
+      expect(() => new TeamDrawer([a!, b!, c!, d!], 3, rules)).toThrow(
+        'Há regras contraditórias',
       )
     })
   })

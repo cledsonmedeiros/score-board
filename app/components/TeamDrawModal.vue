@@ -262,11 +262,11 @@
                 Restrições de Jogadores
               </h3>
               <p class="text-xs text-gray-600">
-                Defina pares que não podem cair na mesma equipe.
+                Defina pares que não podem ou que devem cair na mesma equipe.
               </p>
             </div>
 
-            <div class="mb-3 grid gap-2 md:grid-cols-3">
+            <div class="mb-3 grid gap-2 md:grid-cols-4">
               <select
                 v-model="constraintPlayerAId"
                 class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
@@ -281,6 +281,17 @@
                 >
                   {{ player.name }}
                 </option>
+              </select>
+
+              <select
+                v-model="constraintType"
+                aria-label="Tipo de regra"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
+                  focus:border-blue-500 focus:outline-none focus:ring-2
+                  focus:ring-blue-500"
+              >
+                <option value="cannot">{{ PAIR_RULE_LABELS.cannot }}</option>
+                <option value="must">{{ PAIR_RULE_LABELS.must }}</option>
               </select>
 
               <select
@@ -300,7 +311,7 @@
               </select>
 
               <button
-                @click="handleAddCannotPairRule"
+                @click="handleAddPairRule"
                 class="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2
                   text-sm font-semibold text-blue-700 transition-colors
                   hover:bg-blue-100"
@@ -310,7 +321,7 @@
             </div>
 
             <div
-              v-if="cannotPairRulesWithPlayers.length === 0"
+              v-if="pairRulesWithPlayers.length === 0"
               class="rounded-lg bg-gray-50 p-3 text-xs text-gray-600"
             >
               Nenhuma restrição cadastrada.
@@ -318,17 +329,23 @@
 
             <div v-else class="max-h-40 space-y-2 overflow-y-auto">
               <div
-                v-for="rule in cannotPairRulesWithPlayers"
+                v-for="rule in pairRulesWithPlayers"
                 :key="rule.id"
-                class="flex items-center justify-between rounded-lg border
+                class="flex items-center justify-between gap-2 rounded-lg border
                   border-gray-200 bg-white p-2"
               >
                 <p class="text-sm text-gray-700">
-                  {{ rule.playerAName }} <span class="font-semibold">não pode</span>
-                  com {{ rule.playerBName }}
+                  {{ rule.playerAName }}
+                  <span
+                    class="font-semibold"
+                    :class="rule.type === 'must' ? 'text-green-700' : 'text-red-700'"
+                  >
+                    {{ PAIR_RULE_LABELS[rule.type] }}
+                  </span>
+                  {{ rule.playerBName }}
                 </p>
                 <button
-                  @click="handleRemoveCannotPairRule(rule.id)"
+                  @click="handleRemovePairRule(rule.id)"
                   class="rounded p-1 text-red-600 transition-colors hover:bg-red-50"
                   title="Remover restrição"
                 >
@@ -608,6 +625,7 @@
 
 <script setup lang="ts">
 import type { Team, Player } from '~/stores/scoreboard'
+import { PAIR_RULE_LABELS, type PairRuleType } from '~/utils/pairRules'
 
 const emit = defineEmits<{
   close: []
@@ -627,6 +645,7 @@ const previewTeams = ref<Team[] | null>(null)
 const showPreview = ref(false)
 const constraintPlayerAId = ref('')
 const constraintPlayerBId = ref('')
+const constraintType = ref<PairRuleType>('cannot')
 
 // Estados do modo manual
 const manualTeams = ref<Team[]>([])
@@ -660,13 +679,14 @@ const genderSummary = (team: Team) => {
   return `♂ ${maleCount} · ♀ ${femaleCount}`
 }
 
-const cannotPairRulesWithPlayers = computed(() => {
-  return store.cannotPairRules.map((rule) => {
+const pairRulesWithPlayers = computed(() => {
+  return store.pairRules.map((rule) => {
     const playerA = playersById.value.get(rule.playerAId)
     const playerB = playersById.value.get(rule.playerBId)
 
     return {
       id: rule.id,
+      type: rule.type,
       playerAName: playerA?.name ?? 'Jogador removido',
       playerBName: playerB?.name ?? 'Jogador removido',
     }
@@ -726,16 +746,17 @@ const handleDraw = () => {
   }
 }
 
-const handleAddCannotPairRule = () => {
+const handleAddPairRule = () => {
   if (!constraintPlayerAId.value || !constraintPlayerBId.value) {
     alert('Selecione os dois jogadores para adicionar a restrição.')
     return
   }
 
   try {
-    const addedRule = store.addCannotPairRule(
+    const addedRule = store.addPairRule(
       constraintPlayerAId.value,
       constraintPlayerBId.value,
+      constraintType.value,
     )
 
     if (!addedRule) {
@@ -753,8 +774,8 @@ const handleAddCannotPairRule = () => {
   }
 }
 
-const handleRemoveCannotPairRule = (ruleId: string) => {
-  store.removeCannotPairRule(ruleId)
+const handleRemovePairRule = (ruleId: string) => {
+  store.removePairRule(ruleId)
 }
 
 const redrawTeams = () => {

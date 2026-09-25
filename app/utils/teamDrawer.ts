@@ -1,28 +1,45 @@
-import type { CannotPairRule, Player, Team } from '../stores/scoreboard'
+import type { Player, Team } from '../stores/scoreboard'
+import {
+  createMustGroupResolver,
+  findContradictoryRule,
+  type PairRule,
+} from './pairRules'
 
 export type DrawStrategy = 'balanced' | 'random'
 
-export function getPairKey(playerAId: string, playerBId: string) {
-  return [playerAId, playerBId].sort().join('::')
+/**
+ * Bloco indivisível de jogadores distribuído no sorteio: um jogador sozinho
+ * ou um grupo de jogadores ligados por regras de "deve jogar junto".
+ */
+interface PlayerUnit {
+  members: Player[]
+  weight: number
+  maleCount: number
+  femaleCount: number
 }
 
 /**
  * Monta as equipes a partir de uma lista de jogadores habilitados.
  *
- * Além de distribuir os jogadores respeitando as regras de "não pode jogar
- * junto", equilibra dois critérios entre as equipes:
+ * Respeita as regras entre pares de jogadores:
+ * - "não pode jogar junto": os dois nunca ficam na mesma equipe;
+ * - "deve jogar junto": os jogadores (inclusive por transitividade) formam um
+ *   bloco que é alocado inteiro em uma única equipe.
+ *
+ * Além disso, equilibra dois critérios entre as equipes:
  * - peso (nível/habilidade) de cada jogador;
  * - quantidade de homens e mulheres.
  *
- * No modo `balanced`, dentro de cada gênero os jogadores são distribuídos
- * sempre para a equipe com menor peso acumulado (desempate pela equipe com
- * menos membros). No modo `random`, a ordem dos jogadores é embaralhada e
- * cada um vai para a primeira equipe elegível, sem considerar peso.
+ * No modo `balanced`, os blocos são distribuídos sempre para a equipe com
+ * menor peso acumulado (desempate pela equipe com menos membros). No modo
+ * `random`, a ordem dos blocos é embaralhada e cada um vai para a primeira
+ * equipe elegível, sem considerar peso.
  */
 export class TeamDrawer {
-  private readonly players: Player[]
+  private readonly playersPerTeam: number
   private readonly targetTeamSizes: number[]
   private readonly cannotPairLookup: Map<string, Set<string>>
+  private readonly units: PlayerUnit[]
 
   private readonly teams: Team[]
   private readonly teamWeights: number[]
@@ -31,7 +48,7 @@ export class TeamDrawer {
   constructor(
     players: Player[],
     playersPerTeam: number,
-    cannotPairRules: CannotPairRule[] = [],
+    pairRules: PairRule[] = [],
   ) {
     if (players.length === 0) {
       throw new Error('Nenhum jogador habilitado para sorteio')
@@ -40,12 +57,26 @@ export class TeamDrawer {
       throw new Error('Número de jogadores por time deve ser maior que 0')
     }
 
-    this.players = players
+    // Só valem as regras em que os dois jogadores participam deste sorteio.
+    const playerIds = new Set(players.map((player) => player.id))
+    const activeRules = pairRules.filter(
+      (rule) => playerIds.has(rule.playerAId) && playerIds.has(rule.playerBId),
+    )
+
+    if (findContradictoryRule(activeRules)) {
+      throw new Error(
+        'Há regras contraditórias: jogadores que devem jogar juntos também estão marcados como "não pode jogar junto".',
+      )
+    }
+
+    this.playersPerTeam = playersPerTeam
     this.targetTeamSizes = TeamDrawer.calculateTeamSizes(
       players.length,
       playersPerTeam,
     )
-    this.cannotPairLookup = TeamDrawer.buildCannotPairLookup(cannotPairRules)
+    this.cannotPairLookup = TeamDrawer.buildCannotPairLookup(activeRules)
+    this.units = TeamDrawer.buildUnits(players, activeRules)
+    this.assertUnitsFitInTeams()
 
     const numberOfTeams = this.targetTeamSizes.length
     this.teams = Array.from({ length: numberOfTeams }, (_, i) => ({
@@ -64,26 +95,19 @@ export class TeamDrawer {
   draw(strategy: DrawStrategy): Team[] {
     const weighted = strategy === 'balanced'
 
-    const femalePlayers = this.players.filter((player) => this.isFemale(player))
-    const malePlayers = this.players.filter((player) => !this.isFemale(player))
-
-    const femaleTargets = this.computeGenderTargets(femalePlayers.length)
+    const totalFemale = this.units.reduce(
+      (sum, unit) => sum + unit.femaleCount,
+      0,
+    )
+    const femaleTargets = this.computeGenderTargets(totalFemale)
     const maleTargets = this.targetTeamSizes.map(
       (size, i) => size - (femaleTargets[i] ?? 0),
     )
 
     this.resetTeams()
 
-    // Distribui primeiro os homens e depois as mulheres, ambos respeitando
-    // a cota de gênero calculada por equipe. O peso acumulado é compartilhado
-    // entre as duas passagens, então o balanceamento por habilidade continua
-    // valendo entre todos os jogadores, não só dentro de cada gênero.
-    const orderedPlayers = [
-      ...this.orderPlayers(malePlayers, weighted),
-      ...this.orderPlayers(femalePlayers, weighted),
-    ]
-    const assigned = this.assignPlayers(
-      orderedPlayers,
+    const assigned = this.assignUnits(
+      this.orderUnits(weighted),
       maleTargets,
       femaleTargets,
       weighted,
@@ -94,7 +118,7 @@ export class TeamDrawer {
     }
 
     throw new Error(
-      'Não foi possível montar equipes com as restrições atuais. Revise as regras de jogadores que não podem jogar juntos.',
+      'Não foi possível montar equipes com as restrições atuais. Revise as regras de "não pode jogar junto" e "deve jogar junto".',
     )
   }
 
@@ -120,10 +144,12 @@ export class TeamDrawer {
     ]
   }
 
-  private static buildCannotPairLookup(rules: CannotPairRule[]) {
+  private static buildCannotPairLookup(rules: PairRule[]) {
     const lookup = new Map<string, Set<string>>()
 
     rules.forEach((rule) => {
+      if (rule.type !== 'cannot') return
+
       if (!lookup.has(rule.playerAId)) {
         lookup.set(rule.playerAId, new Set())
       }
@@ -138,17 +164,56 @@ export class TeamDrawer {
     return lookup
   }
 
-  private isFemale(player: Player) {
-    return player.gender === 'F'
+  /** Agrupa os jogadores em blocos: cada grupo de "deve jogar junto" vira um bloco; os demais ficam sozinhos. */
+  private static buildUnits(players: Player[], rules: PairRule[]) {
+    const groupOf = createMustGroupResolver(rules)
+    const unitsByGroup = new Map<string, PlayerUnit>()
+
+    players.forEach((player) => {
+      const groupId = groupOf(player.id)
+      let unit = unitsByGroup.get(groupId)
+      if (!unit) {
+        unit = { members: [], weight: 0, maleCount: 0, femaleCount: 0 }
+        unitsByGroup.set(groupId, unit)
+      }
+
+      unit.members.push(player)
+      unit.weight += player.weight
+      if (player.gender === 'F') {
+        unit.femaleCount++
+      } else {
+        unit.maleCount++
+      }
+    })
+
+    return [...unitsByGroup.values()]
   }
 
-  private canJoinTeam(playerId: string, team: Team) {
-    const blockedPlayers = this.cannotPairLookup.get(playerId)
-    if (!blockedPlayers || blockedPlayers.size === 0) {
-      return true
+  private assertUnitsFitInTeams() {
+    const oversized = this.units.find(
+      (unit) => unit.members.length > this.playersPerTeam,
+    )
+    if (!oversized) return
+
+    const names = oversized.members.map((member) => member.name).join(', ')
+    throw new Error(
+      `O grupo que deve jogar junto (${names}) tem ${oversized.members.length} jogadores, mais do que o limite de ${this.playersPerTeam} por equipe.`,
+    )
+  }
+
+  private canJoinTeam(unit: PlayerUnit, teamIndex: number) {
+    const team = this.teams[teamIndex]
+    const maxSize = this.targetTeamSizes[teamIndex] ?? 0
+    if (!team || team.members.length + unit.members.length > maxSize) {
+      return false
     }
 
-    return !team.members.some((member) => blockedPlayers.has(member.id))
+    return unit.members.every((player) => {
+      const blockedPlayers = this.cannotPairLookup.get(player.id)
+      if (!blockedPlayers || blockedPlayers.size === 0) return true
+
+      return !team.members.some((member) => blockedPlayers.has(member.id))
+    })
   }
 
   /** Calcula quantas vagas de um gênero cada equipe deve ter, proporcional ao tamanho de cada equipe. */
@@ -211,86 +276,127 @@ export class TeamDrawer {
     return targets
   }
 
-  private orderPlayers(players: Player[], weighted: boolean) {
-    const shuffled = [...players].sort(() => Math.random() - 0.5)
-    return weighted ? shuffled.sort((a, b) => b.weight - a.weight) : shuffled
+  /**
+   * Define a ordem de alocação dos blocos:
+   * 1. blocos maiores primeiro (são os mais difíceis de encaixar);
+   * 2. blocos só de mulheres por último — mantém a distribuição "homens
+   *    primeiro, depois mulheres" usada para jogadores sem regra; o peso
+   *    acumulado é compartilhado, então o equilíbrio vale entre todos;
+   * 3. no modo balanceado, blocos mais pesados primeiro.
+   * O embaralhamento inicial define a ordem entre blocos empatados.
+   */
+  private orderUnits(weighted: boolean) {
+    const isFemaleOnly = (unit: PlayerUnit) =>
+      unit.femaleCount > 0 && unit.maleCount === 0
+
+    return [...this.units]
+      .sort(() => Math.random() - 0.5)
+      .sort(
+        (a, b) =>
+          b.members.length - a.members.length ||
+          Number(isFemaleOnly(a)) - Number(isFemaleOnly(b)) ||
+          (weighted ? b.weight - a.weight : 0),
+      )
   }
 
-  private assignPlayers(
-    players: Player[],
+  private placeUnit(unit: PlayerUnit, teamIndex: number, direction: 1 | -1) {
+    const team = this.teams[teamIndex]
+    if (!team) return
+
+    if (direction === 1) {
+      team.members.push(...unit.members.map((player) => ({ ...player })))
+    } else {
+      team.members.splice(team.members.length - unit.members.length)
+    }
+
+    this.teamWeights[teamIndex] =
+      (this.teamWeights[teamIndex] ?? 0) + direction * unit.weight
+    this.genderCounts.M[teamIndex] =
+      (this.genderCounts.M[teamIndex] ?? 0) + direction * unit.maleCount
+    this.genderCounts.F[teamIndex] =
+      (this.genderCounts.F[teamIndex] ?? 0) + direction * unit.femaleCount
+  }
+
+  private assignUnits(
+    units: PlayerUnit[],
     maleTargets: number[],
     femaleTargets: number[],
     weighted: boolean,
-    playerIndex = 0,
+    unitIndex = 0,
   ): boolean {
-    if (playerIndex >= players.length) return true
+    const unit = units[unitIndex]
+    if (!unit) return true
 
-    const player = players[playerIndex]
-    if (!player) return true
-
-    const genderTargets = this.isFemale(player) ? femaleTargets : maleTargets
-    const genderCounts = this.isFemale(player)
-      ? this.genderCounts.F
-      : this.genderCounts.M
-
-    const teamIndexes = this.getTeamIndexesForPlayer(
-      player,
-      genderTargets,
-      genderCounts,
+    const teamIndexes = this.getTeamIndexesForUnit(
+      unit,
+      maleTargets,
+      femaleTargets,
       weighted,
     )
 
     for (const teamIndex of teamIndexes) {
-      const team = this.teams[teamIndex]
-      if (!team) continue
-
-      team.members.push({ ...player })
-      this.teamWeights[teamIndex] =
-        (this.teamWeights[teamIndex] ?? 0) + player.weight
-      genderCounts[teamIndex] = (genderCounts[teamIndex] ?? 0) + 1
+      this.placeUnit(unit, teamIndex, 1)
 
       if (
-        this.assignPlayers(
-          players,
+        this.assignUnits(
+          units,
           maleTargets,
           femaleTargets,
           weighted,
-          playerIndex + 1,
+          unitIndex + 1,
         )
       ) {
         return true
       }
 
-      team.members.pop()
-      this.teamWeights[teamIndex] =
-        (this.teamWeights[teamIndex] ?? 0) - player.weight
-      genderCounts[teamIndex] = (genderCounts[teamIndex] ?? 0) - 1
+      this.placeUnit(unit, teamIndex, -1)
     }
 
     return false
   }
 
-  private getTeamIndexesForPlayer(
-    player: Player,
-    genderTargets: number[],
-    genderCounts: number[],
+  /** Indica se o bloco cabe na cota de gênero da equipe (só para os gêneros presentes no bloco). */
+  private fitsGenderQuota(
+    unit: PlayerUnit,
+    teamIndex: number,
+    maleTargets: number[],
+    femaleTargets: number[],
+  ) {
+    const malesFit =
+      unit.maleCount === 0 ||
+      (this.genderCounts.M[teamIndex] ?? 0) + unit.maleCount <=
+        (maleTargets[teamIndex] ?? 0)
+    const femalesFit =
+      unit.femaleCount === 0 ||
+      (this.genderCounts.F[teamIndex] ?? 0) + unit.femaleCount <=
+        (femaleTargets[teamIndex] ?? 0)
+
+    return malesFit && femalesFit
+  }
+
+  private getTeamIndexesForUnit(
+    unit: PlayerUnit,
+    maleTargets: number[],
+    femaleTargets: number[],
     weighted: boolean,
   ): number[] {
     const indexes = this.teams
       .map((_, index) => index)
-      .filter((index) => {
-        const team = this.teams[index]
-        const maxSize = this.targetTeamSizes[index] ?? 0
-        return (
-          team !== undefined &&
-          team.members.length < maxSize &&
-          this.canJoinTeam(player.id, team)
-        )
-      })
+      .filter((index) => this.canJoinTeam(unit, index))
 
     return indexes.sort((a, b) => {
-      const aWithinQuota = (genderCounts[a] ?? 0) < (genderTargets[a] ?? 0)
-      const bWithinQuota = (genderCounts[b] ?? 0) < (genderTargets[b] ?? 0)
+      const aWithinQuota = this.fitsGenderQuota(
+        unit,
+        a,
+        maleTargets,
+        femaleTargets,
+      )
+      const bWithinQuota = this.fitsGenderQuota(
+        unit,
+        b,
+        maleTargets,
+        femaleTargets,
+      )
 
       if (aWithinQuota !== bWithinQuota) return aWithinQuota ? -1 : 1
       if (!weighted) return a - b

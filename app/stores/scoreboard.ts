@@ -1,5 +1,13 @@
 import { defineStore } from 'pinia'
-import { TeamDrawer, getPairKey } from '~/utils/teamDrawer'
+import { TeamDrawer } from '~/utils/teamDrawer'
+import {
+  PAIR_RULE_LABELS,
+  findContradictoryRule,
+  getPairKey,
+  normalizePairRuleType,
+  type PairRule,
+  type PairRuleType,
+} from '~/utils/pairRules'
 
 export type Gender = 'M' | 'F'
 
@@ -25,26 +33,27 @@ export interface PlayerImportData {
   enabled?: boolean
 }
 
-export interface CannotPairRuleImportData {
+export interface PairRuleImportData {
+  type: PairRuleType
   playerAName: string
   playerBName: string
 }
 
-export interface TransferPayloadV3 {
-  version: 3
+/**
+ * Formato de transferência atual. As regras ficam em `pairRules` (e não em
+ * `cannotPairRules`, usado até a v3) de propósito: versões antigas do app
+ * ignoram o campo novo em vez de importar uma regra "deve jogar junto" como
+ * se fosse "não pode jogar junto".
+ */
+export interface TransferPayloadV4 {
+  version: 4
   players: PlayerImportData[]
-  cannotPairRules: CannotPairRuleImportData[]
+  pairRules: PairRuleImportData[]
 }
 
 export interface DecodedTransferPayload {
   players: PlayerImportData[]
-  cannotPairRules: CannotPairRuleImportData[]
-}
-
-export interface CannotPairRule {
-  id: string
-  playerAId: string
-  playerBId: string
+  pairRules: PairRuleImportData[]
 }
 
 export type TeamColor = 'red' | 'blue'
@@ -66,7 +75,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
       blue: { name: 'EQUIPE 2', score: 0, members: [] },
     } as Teams,
     allTeams: [] as Team[], // Para sortear múltiplas equipes
-    cannotPairRules: [] as CannotPairRule[],
+    pairRules: [] as PairRule[],
   }),
 
   getters: {
@@ -101,8 +110,8 @@ export const useScoreboardStore = defineStore('scoreboard', {
         enabled: player.enabled,
       }))
 
-      const cannotPairRulesPayload = this.cannotPairRules
-        .map((rule) => {
+      const pairRulesPayload = this.pairRules
+        .map((rule): PairRuleImportData | null => {
           const playerA = this.players.find((player) => player.id === rule.playerAId)
           const playerB = this.players.find((player) => player.id === rule.playerBId)
 
@@ -111,16 +120,17 @@ export const useScoreboardStore = defineStore('scoreboard', {
           }
 
           return {
+            type: rule.type,
             playerAName: playerA.name,
             playerBName: playerB.name,
           }
         })
-        .filter((rule): rule is CannotPairRuleImportData => !!rule)
+        .filter((rule): rule is PairRuleImportData => !!rule)
 
-      const payload: TransferPayloadV3 = {
-        version: 3,
+      const payload: TransferPayloadV4 = {
+        version: 4,
         players: playersPayload,
-        cannotPairRules: cannotPairRulesPayload,
+        pairRules: pairRulesPayload,
       }
 
       const json = JSON.stringify(payload)
@@ -139,13 +149,14 @@ export const useScoreboardStore = defineStore('scoreboard', {
       if (Array.isArray(parsed)) {
         return {
           players: parsed as PlayerImportData[],
-          cannotPairRules: [] as CannotPairRuleImportData[],
+          pairRules: [],
         }
       }
 
       if (parsed && typeof parsed === 'object') {
         const payload = parsed as {
           players?: unknown
+          pairRules?: unknown
           cannotPairRules?: unknown
         }
 
@@ -153,17 +164,30 @@ export const useScoreboardStore = defineStore('scoreboard', {
           throw new Error('Formato inválido: esperado dados de jogadores')
         }
 
-        const cannotPairRules = Array.isArray(payload.cannotPairRules)
-          ? payload.cannotPairRules.filter(
-              (rule): rule is CannotPairRuleImportData =>
-                typeof rule?.playerAName === 'string' &&
-                typeof rule?.playerBName === 'string',
-            )
-          : []
+        // v4 usa `pairRules` com tipo; v3 usava `cannotPairRules` (sempre "não pode").
+        const rawRules = Array.isArray(payload.pairRules)
+          ? payload.pairRules
+          : Array.isArray(payload.cannotPairRules)
+            ? payload.cannotPairRules
+            : []
+
+        const pairRules = rawRules
+          .filter(
+            (rule) =>
+              typeof rule?.playerAName === 'string' &&
+              typeof rule?.playerBName === 'string',
+          )
+          .map(
+            (rule): PairRuleImportData => ({
+              type: normalizePairRuleType(rule.type),
+              playerAName: rule.playerAName,
+              playerBName: rule.playerBName,
+            }),
+          )
 
         return {
           players: payload.players as PlayerImportData[],
-          cannotPairRules,
+          pairRules,
         }
       }
 
@@ -293,12 +317,12 @@ export const useScoreboardStore = defineStore('scoreboard', {
       }
     },
 
-    importCannotPairRules(
-      importedRules: CannotPairRuleImportData[],
+    importPairRules(
+      importedRules: PairRuleImportData[],
       replaceExisting: boolean,
     ) {
       if (replaceExisting) {
-        this.cannotPairRules = []
+        this.pairRules = []
       }
 
       let ruleAddedCount = 0
@@ -313,10 +337,15 @@ export const useScoreboardStore = defineStore('scoreboard', {
           return
         }
 
-        const addedRule = this.addCannotPairRule(playerAId, playerBId)
-        if (addedRule) {
-          ruleAddedCount++
-        } else {
+        try {
+          const addedRule = this.addPairRule(playerAId, playerBId, rule.type)
+          if (addedRule) {
+            ruleAddedCount++
+          } else {
+            ruleSkippedCount++
+          }
+        } catch {
+          // Regra conflitante com as já existentes: ignora em vez de abortar a importação.
           ruleSkippedCount++
         }
       })
@@ -336,8 +365,8 @@ export const useScoreboardStore = defineStore('scoreboard', {
         ? this.replacePlayersFromImport(decoded.players)
         : this.importPlayersMerge(decoded.players)
 
-      const ruleResult = this.importCannotPairRules(
-        decoded.cannotPairRules,
+      const ruleResult = this.importPairRules(
+        decoded.pairRules,
         replaceLocalData,
       )
 
@@ -383,19 +412,29 @@ export const useScoreboardStore = defineStore('scoreboard', {
             const parsed = JSON.parse(stored)
 
             if (Array.isArray(parsed)) {
-              this.cannotPairRules = parsed.filter(
-                (rule): rule is CannotPairRule =>
-                  typeof rule?.id === 'string' &&
-                  typeof rule?.playerAId === 'string' &&
-                  typeof rule?.playerBId === 'string' &&
-                  rule.playerAId !== rule.playerBId,
-              )
+              // Regras salvas antes do campo `type` existir são "não pode jogar junto".
+              this.pairRules = parsed
+                .filter(
+                  (rule) =>
+                    typeof rule?.id === 'string' &&
+                    typeof rule?.playerAId === 'string' &&
+                    typeof rule?.playerBId === 'string' &&
+                    rule.playerAId !== rule.playerBId,
+                )
+                .map(
+                  (rule): PairRule => ({
+                    id: rule.id,
+                    type: normalizePairRuleType(rule.type),
+                    playerAId: rule.playerAId,
+                    playerBId: rule.playerBId,
+                  }),
+                )
             } else {
-              this.cannotPairRules = []
+              this.pairRules = []
             }
           } catch (e) {
             console.error('Erro ao carregar restrições:', e)
-            this.cannotPairRules = []
+            this.pairRules = []
           }
         }
       }
@@ -405,7 +444,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
       if (import.meta.client) {
         localStorage.setItem(
           CONSTRAINTS_STORAGE_KEY,
-          JSON.stringify(this.cannotPairRules),
+          JSON.stringify(this.pairRules),
         )
       }
     },
@@ -465,11 +504,11 @@ export const useScoreboardStore = defineStore('scoreboard', {
         this.players.splice(index, 1)
         this.savePlayers()
 
-        const previousLength = this.cannotPairRules.length
-        this.cannotPairRules = this.cannotPairRules.filter(
+        const previousLength = this.pairRules.length
+        this.pairRules = this.pairRules.filter(
           (rule) => rule.playerAId !== playerId && rule.playerBId !== playerId,
         )
-        if (this.cannotPairRules.length !== previousLength) {
+        if (this.pairRules.length !== previousLength) {
           this.saveConstraints()
         }
 
@@ -478,42 +517,61 @@ export const useScoreboardStore = defineStore('scoreboard', {
       return false
     },
 
-    addCannotPairRule(playerAId: string, playerBId: string) {
+    /**
+     * Cria uma regra entre dois jogadores. Retorna `null` se a mesma regra já
+     * existir (idempotente) e lança erro se ela contradizer as regras atuais.
+     */
+    addPairRule(playerAId: string, playerBId: string, type: PairRuleType) {
       if (playerAId === playerBId) {
-        throw new Error('Selecione dois jogadores diferentes para a restrição')
+        throw new Error('Selecione dois jogadores diferentes para a regra')
       }
 
-      const playerAExists = this.players.some((player) => player.id === playerAId)
-      const playerBExists = this.players.some((player) => player.id === playerBId)
+      const playerA = this.players.find((player) => player.id === playerAId)
+      const playerB = this.players.find((player) => player.id === playerBId)
 
-      if (!playerAExists || !playerBExists) {
-        throw new Error('Jogador não encontrado para criar restrição')
+      if (!playerA || !playerB) {
+        throw new Error('Jogador não encontrado para criar a regra')
       }
 
       const pairKey = getPairKey(playerAId, playerBId)
-      const alreadyExists = this.cannotPairRules.some(
+      const existingRule = this.pairRules.find(
         (rule) => getPairKey(rule.playerAId, rule.playerBId) === pairKey,
       )
 
-      if (alreadyExists) {
-        return null
+      if (existingRule) {
+        if (existingRule.type === type) {
+          return null
+        }
+        throw new Error(
+          `Já existe a regra "${playerA.name} ${PAIR_RULE_LABELS[existingRule.type]} ${playerB.name}". Remova-a antes de criar a regra oposta.`,
+        )
       }
 
-      const rule: CannotPairRule = {
+      const rule: PairRule = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type,
         playerAId,
         playerBId,
       }
 
-      this.cannotPairRules.push(rule)
+      const conflict = findContradictoryRule([...this.pairRules, rule])
+      if (conflict) {
+        const nameOf = (id: string) =>
+          this.players.find((player) => player.id === id)?.name ?? 'Jogador removido'
+        throw new Error(
+          `Essa regra gera um conflito: ${nameOf(conflict.playerAId)} e ${nameOf(conflict.playerBId)} não podem jogar juntos, mas ficariam no mesmo grupo de "deve jogar com".`,
+        )
+      }
+
+      this.pairRules.push(rule)
       this.saveConstraints()
       return rule
     },
 
-    removeCannotPairRule(ruleId: string) {
-      const index = this.cannotPairRules.findIndex((rule) => rule.id === ruleId)
+    removePairRule(ruleId: string) {
+      const index = this.pairRules.findIndex((rule) => rule.id === ruleId)
       if (index !== -1) {
-        this.cannotPairRules.splice(index, 1)
+        this.pairRules.splice(index, 1)
         this.saveConstraints()
         return true
       }
@@ -521,8 +579,8 @@ export const useScoreboardStore = defineStore('scoreboard', {
       return false
     },
 
-    clearCannotPairRules() {
-      this.cannotPairRules = []
+    clearPairRules() {
+      this.pairRules = []
       this.saveConstraints()
     },
 
@@ -565,7 +623,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
       const drawer = new TeamDrawer(
         this.enabledPlayers,
         playersPerTeam,
-        this.cannotPairRules,
+        this.pairRules,
       )
       this.allTeams = drawer.draw('balanced')
 
@@ -582,7 +640,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
       const drawer = new TeamDrawer(
         this.enabledPlayers,
         playersPerTeam,
-        this.cannotPairRules,
+        this.pairRules,
       )
       this.allTeams = drawer.draw('random')
 
@@ -700,6 +758,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
         blue: { name: 'EQUIPE 2', score: 0, members: [] },
       }
       this.allTeams = []
+      this.pairRules = []
 
       // Limpa o localStorage
       if (import.meta.client) {
