@@ -17,9 +17,14 @@ export default defineNuxtConfig({
   ],
 
   // O app é 100% client-side (Pinia + localStorage, sem chamadas de API).
-  // Pré-renderizar as duas páginas gera HTML estático de verdade para cada
-  // rota, que o service worker consegue colocar em cache — sem isso, o
-  // documento HTML nunca existiria como arquivo para funcionar offline.
+  // Sem SSR: o servidor não tem acesso ao localStorage, então qualquer HTML
+  // renderizado no servidor sairia sem jogadores/equipes e divergiria do
+  // estado do cliente (avisos de "hydration mismatch").
+  ssr: false,
+
+  // Mesmo sem SSR, pré-renderizar as duas rotas gera um arquivo HTML (o
+  // "shell" do SPA) para cada uma, que o service worker consegue colocar em
+  // cache — sem isso, o documento HTML nunca existiria para funcionar offline.
   routeRules: {
     '/': { prerender: true },
     '/manage': { prerender: true },
@@ -159,6 +164,12 @@ export default defineNuxtConfig({
         {
           name: 'theme-color',
           content: '#EF4444',
+        },
+        // Tag padrão para modo standalone; o Chrome marca a versão `apple-`
+        // como obsoleta quando esta não está presente.
+        {
+          name: 'mobile-web-app-capable',
+          content: 'yes',
         },
         // Safari/iPadOS não confia só no manifest.json para o modo
         // standalone e o nome do ícone — precisa dessas tags dedicadas.
