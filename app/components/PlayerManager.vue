@@ -45,6 +45,15 @@
               @update="newPlayerGender = $event"
             />
           </div>
+          <div class="shrink-0">
+            <label class="mb-1 block text-xs font-medium text-gray-700"
+              >Posições</label
+            >
+            <PositionToggles
+              :model-value="newPlayerPositions"
+              @update="newPlayerPositions = $event"
+            />
+          </div>
           <div class="flex">
             <button
               type="submit"
@@ -174,6 +183,31 @@
               quebra para uma 3ª linha em vez de ser cortado pelo
               overflow-x-hidden da lista. -->
             <div class="flex flex-wrap items-center gap-3 sm:contents">
+              <button
+                type="button"
+                @click="store.updatePlayer(player.id, { seed: !player.seed })"
+                :aria-pressed="player.seed"
+                :title="
+                  player.seed
+                    ? 'Cabeça de chave (clique para remover)'
+                    : 'Marcar como cabeça de chave'
+                "
+                class="flex h-8 w-8 shrink-0 items-center justify-center
+                  rounded-full transition-colors"
+                :class="
+                  player.seed
+                    ? 'bg-yellow-100 text-yellow-500 hover:bg-yellow-200'
+                    : 'text-gray-300 hover:bg-gray-100 hover:text-gray-400'
+                "
+              >
+                <Icon
+                  :name="
+                    player.seed ? 'heroicons:star-solid' : 'heroicons:star'
+                  "
+                  class="h-5 w-5"
+                />
+              </button>
+
               <div class="shrink-0">
                 <WeightSlider
                   :model-value="player.weight"
@@ -185,6 +219,14 @@
                 <GenderToggle
                   :model-value="player.gender"
                   @update="store.updatePlayer(player.id, { gender: $event })"
+                  size="sm"
+                />
+              </div>
+
+              <div class="shrink-0">
+                <PositionToggles
+                  :model-value="player.positions"
+                  @update="store.updatePlayer(player.id, { positions: $event })"
                   size="sm"
                 />
               </div>
@@ -209,6 +251,7 @@
 
 <script setup lang="ts">
 import type { Gender, Player } from '~/stores/scoreboard'
+import { SKILL_DEFAULT, emptyPositions } from '~/utils/playerProfile'
 
 const store = useScoreboardStore()
 const { askConfirm } = usePrompt()
@@ -217,8 +260,9 @@ const { truncateText } = useFormatters()
 
 // Formulário de novo jogador
 const newPlayerName = ref('')
-const newPlayerWeight = ref(3)
+const newPlayerWeight = ref(SKILL_DEFAULT)
 const newPlayerGender = ref<Gender>('M')
+const newPlayerPositions = ref(emptyPositions())
 
 // Filtro
 const showOnlyEnabled = ref(false)
@@ -241,10 +285,16 @@ const filteredPlayers = computed(() => {
 
 const handleAddPlayer = () => {
   if (newPlayerName.value.trim()) {
-    store.addPlayer(newPlayerName.value, newPlayerWeight.value, newPlayerGender.value)
+    store.addPlayer(
+      newPlayerName.value,
+      newPlayerWeight.value,
+      newPlayerGender.value,
+      newPlayerPositions.value,
+    )
     newPlayerName.value = ''
-    newPlayerWeight.value = 3
+    newPlayerWeight.value = SKILL_DEFAULT
     newPlayerGender.value = 'M'
+    newPlayerPositions.value = emptyPositions()
   }
 }
 

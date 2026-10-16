@@ -1,5 +1,16 @@
 import { defineStore } from 'pinia'
-import { TeamDrawer } from '~/utils/teamDrawer'
+import { TeamDrawer, type DrawStrategy } from '~/utils/teamDrawer'
+import {
+  SKILL_DEFAULT,
+  migrateLegacySkill,
+  normalizePositions,
+  normalizeSkill,
+  type PlayerPositions,
+} from '~/utils/playerProfile'
+import {
+  PLAYER_STORAGE_KEYS,
+  migrateLegacyStorage,
+} from '~/utils/storageMigration'
 import {
   PAIR_RULE_LABELS,
   findContradictoryRule,
@@ -14,8 +25,12 @@ export type Gender = 'M' | 'F'
 export interface Player {
   id: string
   name: string
+  /** Habilidade na escala 1–10, em passos de 0.5. */
   weight: number
   gender: Gender
+  positions: PlayerPositions
+  /** Cabeça de chave: o sorteio espalha esses jogadores entre as equipes. */
+  seed: boolean
   enabled: boolean
   createdAt: number
 }
@@ -30,6 +45,8 @@ export interface PlayerImportData {
   name: string
   weight?: number
   gender?: Gender
+  positions?: Partial<PlayerPositions>
+  seed?: boolean
   enabled?: boolean
 }
 
@@ -40,16 +57,20 @@ export interface PairRuleImportData {
 }
 
 /**
- * Formato de transferência atual. As regras ficam em `pairRules` (e não em
- * `cannotPairRules`, usado até a v3) de propósito: versões antigas do app
- * ignoram o campo novo em vez de importar uma regra "deve jogar junto" como
- * se fosse "não pode jogar junto".
+ * Formato de transferência atual.
+ * - v5: habilidade na escala 1–10 e posições. Até a v4 a escala era 1–5, e
+ *   esses dados são convertidos na importação.
+ * - As regras ficam em `pairRules` (e não em `cannotPairRules`, usado até a
+ *   v3) de propósito: versões antigas do app ignoram o campo novo em vez de
+ *   importar uma regra "deve jogar junto" como se fosse "não pode jogar junto".
  */
-export interface TransferPayloadV4 {
-  version: 4
+export interface TransferPayloadV5 {
+  version: 5
   players: PlayerImportData[]
   pairRules: PairRuleImportData[]
 }
+
+const TRANSFER_VERSION_WITH_SKILL_10 = 5
 
 export interface DecodedTransferPayload {
   players: PlayerImportData[]
@@ -63,8 +84,9 @@ export interface Teams {
   blue: Team
 }
 
-const STORAGE_KEY = 'scoreboard-players'
-const TEAMS_STORAGE_KEY = 'scoreboard-teams'
+const STORAGE_KEY = PLAYER_STORAGE_KEYS.players
+const TEAMS_STORAGE_KEY = PLAYER_STORAGE_KEYS.teams
+const ALL_TEAMS_STORAGE_KEY = PLAYER_STORAGE_KEYS.allTeams
 const CONSTRAINTS_STORAGE_KEY = 'scoreboard-constraints'
 
 export const useScoreboardStore = defineStore('scoreboard', {
@@ -94,6 +116,43 @@ export const useScoreboardStore = defineStore('scoreboard', {
       return gender === 'F' ? 'F' : 'M'
     },
 
+    /** Garante que um jogador salvo/importado tenha todos os campos válidos. */
+    normalizeStoredPlayer(player: Player): Player {
+      return {
+        ...player,
+        weight: normalizeSkill(player.weight),
+        gender: this.normalizeGender(player.gender),
+        positions: normalizePositions(player.positions),
+        seed: player.seed === true,
+      }
+    },
+
+    normalizeStoredTeam(team: Team): Team {
+      return {
+        ...team,
+        members: Array.isArray(team?.members)
+          ? team.members.map((member) => this.normalizeStoredPlayer(member))
+          : [],
+      }
+    },
+
+    /** Cria um jogador a partir de dados importados; retorna `null` se não houver nome. */
+    buildImportedPlayer(player: PlayerImportData, id: string): Player | null {
+      const name = typeof player.name === 'string' ? player.name.trim() : ''
+      if (!name) return null
+
+      return {
+        id,
+        name,
+        weight: normalizeSkill(player.weight ?? SKILL_DEFAULT),
+        gender: this.normalizeGender(player.gender),
+        positions: normalizePositions(player.positions),
+        seed: player.seed === true,
+        enabled: typeof player.enabled === 'boolean' ? player.enabled : true,
+        createdAt: Date.now(),
+      }
+    },
+
     resolvePlayerIdByName(name: string) {
       const normalizedName = this.normalizePlayerName(name)
       const player = this.players.find(
@@ -107,6 +166,8 @@ export const useScoreboardStore = defineStore('scoreboard', {
         name: player.name,
         weight: player.weight,
         gender: player.gender,
+        positions: { ...player.positions },
+        seed: player.seed,
         enabled: player.enabled,
       }))
 
@@ -127,8 +188,8 @@ export const useScoreboardStore = defineStore('scoreboard', {
         })
         .filter((rule): rule is PairRuleImportData => !!rule)
 
-      const payload: TransferPayloadV4 = {
-        version: 4,
+      const payload: TransferPayloadV5 = {
+        version: 5,
         players: playersPayload,
         pairRules: pairRulesPayload,
       }
@@ -146,15 +207,26 @@ export const useScoreboardStore = defineStore('scoreboard', {
       const json = new TextDecoder().decode(bytes)
       const parsed: unknown = JSON.parse(json)
 
+      // Até a v4 (e no formato de lista, sem versão) a habilidade ia de 1 a 5.
+      const toCurrentScale = (players: PlayerImportData[]) =>
+        players.map((player) => ({
+          ...player,
+          weight:
+            typeof player?.weight === 'number'
+              ? migrateLegacySkill(player.weight)
+              : undefined,
+        }))
+
       if (Array.isArray(parsed)) {
         return {
-          players: parsed as PlayerImportData[],
+          players: toCurrentScale(parsed as PlayerImportData[]),
           pairRules: [],
         }
       }
 
       if (parsed && typeof parsed === 'object') {
         const payload = parsed as {
+          version?: unknown
           players?: unknown
           pairRules?: unknown
           cannotPairRules?: unknown
@@ -185,8 +257,13 @@ export const useScoreboardStore = defineStore('scoreboard', {
             }),
           )
 
+        const isCurrentScale =
+          typeof payload.version === 'number' &&
+          payload.version >= TRANSFER_VERSION_WITH_SKILL_10
+        const players = payload.players as PlayerImportData[]
+
         return {
-          players: payload.players as PlayerImportData[],
+          players: isCurrentScale ? players : toCurrentScale(players),
           pairRules,
         }
       }
@@ -203,41 +280,20 @@ export const useScoreboardStore = defineStore('scoreboard', {
       let skippedCount = 0
 
       importedPlayers.forEach((player) => {
-        const rawName = typeof player.name === 'string' ? player.name.trim() : ''
+        const newPlayer = this.buildImportedPlayer(
+          player,
+          `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        )
+        const normalizedName = newPlayer
+          ? this.normalizePlayerName(newPlayer.name)
+          : ''
 
-        if (!rawName) {
+        if (!newPlayer || existingNames.has(normalizedName)) {
           skippedCount++
           return
         }
 
-        const normalizedName = this.normalizePlayerName(rawName)
-        if (existingNames.has(normalizedName)) {
-          skippedCount++
-          return
-        }
-
-        const weight =
-          typeof player.weight === 'number'
-            ? Math.max(1, Math.min(5, player.weight))
-            : 3
-
-        const gender = this.normalizeGender(player.gender)
-
-        const enabled =
-          typeof player.enabled === 'boolean'
-            ? player.enabled
-            : true
-
-        const timestamp = Date.now()
-        this.players.push({
-          id: `${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
-          name: rawName,
-          weight,
-          gender,
-          enabled,
-          createdAt: timestamp,
-        })
-
+        this.players.push(newPlayer)
         existingNames.add(normalizedName)
         addedCount++
       })
@@ -260,41 +316,20 @@ export const useScoreboardStore = defineStore('scoreboard', {
       let skippedCount = 0
 
       importedPlayers.forEach((player, index) => {
-        const rawName = typeof player.name === 'string' ? player.name.trim() : ''
+        const newPlayer = this.buildImportedPlayer(
+          player,
+          `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+        )
+        const normalizedName = newPlayer
+          ? this.normalizePlayerName(newPlayer.name)
+          : ''
 
-        if (!rawName) {
+        if (!newPlayer || seenNames.has(normalizedName)) {
           skippedCount++
           return
         }
 
-        const normalizedName = this.normalizePlayerName(rawName)
-        if (seenNames.has(normalizedName)) {
-          skippedCount++
-          return
-        }
-
-        const weight =
-          typeof player.weight === 'number'
-            ? Math.max(1, Math.min(5, player.weight))
-            : 3
-
-        const gender = this.normalizeGender(player.gender)
-
-        const enabled =
-          typeof player.enabled === 'boolean'
-            ? player.enabled
-            : true
-
-        const timestamp = Date.now()
-        nextPlayers.push({
-          id: `${timestamp}-${index}-${Math.random().toString(36).slice(2, 8)}`,
-          name: rawName,
-          weight,
-          gender,
-          enabled,
-          createdAt: timestamp,
-        })
-
+        nextPlayers.push(newPlayer)
         seenNames.add(normalizedName)
         addedCount++
       })
@@ -383,12 +418,11 @@ export const useScoreboardStore = defineStore('scoreboard', {
         if (stored) {
           try {
             const parsed = JSON.parse(stored)
-            // Normaliza jogadores salvos antes do campo `gender` existir
+            // Completa campos que não existiam em versões antigas (gênero, posições).
             this.players = Array.isArray(parsed)
-              ? parsed.map((player: Player) => ({
-                  ...player,
-                  gender: this.normalizeGender(player.gender),
-                }))
+              ? parsed.map((player: Player) =>
+                  this.normalizeStoredPlayer(player),
+                )
               : []
           } catch (e) {
             console.error('Erro ao carregar jogadores:', e)
@@ -457,11 +491,16 @@ export const useScoreboardStore = defineStore('scoreboard', {
             const data = JSON.parse(stored)
             // Suporta formato antigo (array) e novo (object)
             if (Array.isArray(data)) {
-              this.allTeams = data
-              if (data[0]) this.teams.red = data[0]
-              if (data[1]) this.teams.blue = data[1]
+              this.allTeams = data.map((team: Team) =>
+                this.normalizeStoredTeam(team),
+              )
+              if (this.allTeams[0]) this.teams.red = this.allTeams[0]
+              if (this.allTeams[1]) this.teams.blue = this.allTeams[1]
             } else {
-              this.teams = data
+              if (data?.red) this.teams.red = this.normalizeStoredTeam(data.red)
+              if (data?.blue) {
+                this.teams.blue = this.normalizeStoredTeam(data.blue)
+              }
             }
           } catch (e) {
             console.error('Erro ao carregar equipes:', e)
@@ -478,17 +517,24 @@ export const useScoreboardStore = defineStore('scoreboard', {
 
     saveAllTeams() {
       if (import.meta.client) {
-        localStorage.setItem('scoreboard-all-teams', JSON.stringify(this.allTeams))
+        localStorage.setItem(ALL_TEAMS_STORAGE_KEY, JSON.stringify(this.allTeams))
       }
     },
 
     // Players
-    addPlayer(name: string, weight: number = 3, gender: Gender = 'M') {
+    addPlayer(
+      name: string,
+      weight: number = SKILL_DEFAULT,
+      gender: Gender = 'M',
+      positions?: Partial<PlayerPositions>,
+    ) {
       const newPlayer: Player = {
         id: Date.now().toString(),
         name: name.trim(),
-        weight: Math.max(1, Math.min(5, weight)),
+        weight: normalizeSkill(weight),
         gender,
+        positions: normalizePositions(positions),
+        seed: false,
         enabled: true,
         createdAt: Date.now(),
       }
@@ -594,10 +640,16 @@ export const useScoreboardStore = defineStore('scoreboard', {
           player.name = updates.name.trim()
         }
         if (updates.weight !== undefined) {
-          player.weight = Math.max(1, Math.min(5, updates.weight))
+          player.weight = normalizeSkill(updates.weight)
         }
         if (updates.gender !== undefined) {
           player.gender = updates.gender
+        }
+        if (updates.seed !== undefined) {
+          player.seed = updates.seed
+        }
+        if (updates.positions !== undefined) {
+          player.positions = normalizePositions(updates.positions)
         }
         if (updates.enabled !== undefined) {
           player.enabled = updates.enabled
@@ -619,30 +671,13 @@ export const useScoreboardStore = defineStore('scoreboard', {
     },
 
     // Teams
-    drawTeams(playersPerTeam: number) {
+    drawTeams(numberOfTeams: number, strategy: DrawStrategy = 'balanced') {
       const drawer = new TeamDrawer(
         this.enabledPlayers,
-        playersPerTeam,
+        numberOfTeams,
         this.pairRules,
       )
-      this.allTeams = drawer.draw('balanced')
-
-      // Atualizar times red e blue com os primeiros da lista
-      if (this.allTeams[0]) this.teams.red = { ...this.allTeams[0] }
-      if (this.allTeams[1]) this.teams.blue = { ...this.allTeams[1] }
-
-      this.saveTeams()
-      this.saveAllTeams()
-      return this.allTeams
-    },
-
-    drawRandomTeams(playersPerTeam: number) {
-      const drawer = new TeamDrawer(
-        this.enabledPlayers,
-        playersPerTeam,
-        this.pairRules,
-      )
-      this.allTeams = drawer.draw('random')
+      this.allTeams = drawer.draw(strategy)
 
       // Atualizar times red e blue com os primeiros da lista
       if (this.allTeams[0]) this.teams.red = { ...this.allTeams[0] }
@@ -764,13 +799,16 @@ export const useScoreboardStore = defineStore('scoreboard', {
       if (import.meta.client) {
         localStorage.removeItem(STORAGE_KEY)
         localStorage.removeItem(TEAMS_STORAGE_KEY)
-        localStorage.removeItem('scoreboard-all-teams')
+        localStorage.removeItem(ALL_TEAMS_STORAGE_KEY)
         localStorage.removeItem(CONSTRAINTS_STORAGE_KEY)
       }
     },
 
     // Initialize
     init() {
+      if (import.meta.client) {
+        migrateLegacyStorage(localStorage)
+      }
       this.loadPlayers()
       this.loadTeams()
       this.loadConstraints()

@@ -110,7 +110,7 @@
             </div>
             <!-- Info da Equipe -->
             <div
-              class="mt-auto flex items-center gap-3 border-t border-gray-200
+              class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-200
                 pt-2 text-xs text-gray-600"
             >
               <span
@@ -118,6 +118,9 @@
                 {{ team.members.length === 1 ? 'jogador' : 'jogadores' }}</span
               >
               <span>{{ genderSummary(team) }}</span>
+              <span :title="positionSummaryTitle">{{
+                positionSummary(team)
+              }}</span>
               <span
                 >⚖️
                 {{
@@ -174,29 +177,24 @@
 
         <!-- Configurações -->
         <div class="mb-6 space-y-4">
-          <!-- Número de jogadores por equipe -->
+          <!-- Quantidade de equipes -->
           <div>
             <label class="mb-2 block text-sm font-medium text-gray-700"
-              >Jogadores por Equipe</label
+              >Quantidade de Equipes</label
             >
             <input
-              v-model.number="playersPerTeam"
+              v-model.number="numberOfTeams"
               type="number"
-              min="1"
-              :max="Math.ceil(store.enabledPlayers.length / 2)"
+              :min="MIN_TEAMS"
+              :max="maxTeams"
               class="w-full rounded-lg border border-gray-300 px-4 py-2
                 focus:border-blue-500 focus:outline-none focus:ring-2
                 focus:ring-blue-500"
             />
             <p class="mt-1 text-xs text-gray-500">
-              Mínimo: 1 | Máximo:
-              {{ Math.ceil(store.enabledPlayers.length / 2) }}
-              <span
-                v-if="calculatedTeams > 0"
-                class="font-semibold text-blue-600"
-              >
-                | Serão criadas {{ calculatedTeams }}
-                {{ calculatedTeams === 1 ? 'equipe' : 'equipes' }}
+              Mínimo: {{ MIN_TEAMS }} | Máximo: {{ maxTeams }}
+              <span v-if="teamSizeLabel" class="font-semibold text-blue-600">
+                | {{ teamSizeLabel }}
               </span>
             </p>
           </div>
@@ -225,7 +223,8 @@
                 <div class="flex-1">
                   <p class="font-semibold text-gray-800">Balanceado</p>
                   <p class="text-xs text-gray-600">
-                    Equilibra habilidade e gênero entre as equipes
+                    Espalha cabeças de chave; equilibra posições, habilidade e
+                    gênero (nessa ordem)
                   </p>
                 </div>
               </label>
@@ -248,7 +247,8 @@
                 <div class="flex-1">
                   <p class="font-semibold text-gray-800">Aleatório</p>
                   <p class="text-xs text-gray-600">
-                    Sorteia livremente, só equilibrando gênero
+                    Ignora habilidade; espalha cabeças de chave e equilibra
+                    posições e gênero
                   </p>
                 </div>
               </label>
@@ -383,9 +383,7 @@
           </button>
           <button
             @click="handleDraw"
-            :disabled="
-              playersPerTeam < 1 || playersPerTeam > store.enabledPlayers.length
-            "
+            :disabled="!isValidNumberOfTeams"
             class="flex-1 rounded-lg bg-blue-600 px-6 py-3 font-semibold
               text-white transition-colors hover:bg-blue-700
               disabled:cursor-not-allowed disabled:opacity-50"
@@ -528,7 +526,7 @@
 
             <!-- Info da Equipe -->
             <div
-              class="flex items-center gap-3 border-t border-gray-200 pt-2
+              class="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-200 pt-2
                 text-xs text-gray-600"
             >
               <span
@@ -536,6 +534,9 @@
                 {{ team.members.length === 1 ? 'jogador' : 'jogadores' }}</span
               >
               <span>{{ genderSummary(team) }}</span>
+              <span :title="positionSummaryTitle">{{
+                positionSummary(team)
+              }}</span>
               <span
                 >⚖️
                 {{
@@ -626,6 +627,7 @@
 <script setup lang="ts">
 import type { Team, Player } from '~/stores/scoreboard'
 import { PAIR_RULE_LABELS, type PairRuleType } from '~/utils/pairRules'
+import { POSITIONS, POSITION_LABELS } from '~/utils/playerProfile'
 
 const emit = defineEmits<{
   close: []
@@ -639,7 +641,11 @@ const { askConfirm } = usePrompt()
 const creationMode = ref<'auto' | 'manual'>('auto')
 
 // Estados do modo automático
-const playersPerTeam = ref(4)
+const MIN_TEAMS = 2
+const DEFAULT_TEAMS = 3
+const numberOfTeams = ref(
+  Math.max(MIN_TEAMS, Math.min(DEFAULT_TEAMS, store.enabledPlayers.length)),
+)
 const drawType = ref<'balanced' | 'random'>('balanced')
 const previewTeams = ref<Team[] | null>(null)
 const showPreview = ref(false)
@@ -653,10 +659,32 @@ const selectedPlayer = ref<Player | null>(null)
 const showTeamSelectionModal = ref(false)
 const playerToAssign = ref<Player | null>(null)
 
-const calculatedTeams = computed(() => {
-  if (playersPerTeam.value < 1) return 0
+const maxTeams = computed(() =>
+  Math.max(MIN_TEAMS, store.enabledPlayers.length),
+)
 
-  return Math.ceil(store.enabledPlayers.length / playersPerTeam.value)
+const isValidNumberOfTeams = computed(
+  () =>
+    Number.isInteger(numberOfTeams.value) &&
+    numberOfTeams.value >= MIN_TEAMS &&
+    numberOfTeams.value <= store.enabledPlayers.length,
+)
+
+/** Ex.: "2 equipes de 6 e 1 de 5 jogadores". */
+const teamSizeLabel = computed(() => {
+  if (!isValidNumberOfTeams.value) return ''
+
+  const total = store.enabledPlayers.length
+  const teams = numberOfTeams.value
+  const smallSize = Math.floor(total / teams)
+  const largeCount = total % teams
+  const smallCount = teams - largeCount
+  const plural = (count: number) => (count === 1 ? 'equipe' : 'equipes')
+
+  if (largeCount === 0) {
+    return `${teams} ${plural(teams)} de ${smallSize} jogadores`
+  }
+  return `${largeCount} ${plural(largeCount)} de ${smallSize + 1} e ${smallCount} de ${smallSize} jogadores`
 })
 
 const playersById = computed(() => {
@@ -672,6 +700,18 @@ const availableConstraintPlayerB = computed(() => {
     (player) => player.id !== constraintPlayerAId.value,
   )
 })
+
+const positionSummaryTitle = POSITIONS.map(
+  (position) => POSITION_LABELS[position].full,
+).join(' · ')
+
+const positionSummary = (team: Team) =>
+  POSITIONS.map(
+    (position) =>
+      `${POSITION_LABELS[position].short} ${
+        team.members.filter((member) => member.positions?.[position]).length
+      }`,
+  ).join(' · ')
 
 const genderSummary = (team: Team) => {
   const femaleCount = team.members.filter((m) => m.gender === 'F').length
@@ -719,20 +759,14 @@ const canConfirmManualTeams = computed(() => {
 
 const handleDraw = () => {
   try {
-    if (calculatedTeams.value < 2) {
+    if (!isValidNumberOfTeams.value) {
       alert(
-        'É necessário ter jogadores suficientes para formar pelo menos 2 equipes.',
+        `Escolha entre ${MIN_TEAMS} e ${store.enabledPlayers.length} equipes.`,
       )
       return
     }
 
-    let drawnTeams: Team[]
-
-    if (drawType.value === 'balanced') {
-      drawnTeams = store.drawTeams(playersPerTeam.value)
-    } else {
-      drawnTeams = store.drawRandomTeams(playersPerTeam.value)
-    }
+    const drawnTeams = store.drawTeams(numberOfTeams.value, drawType.value)
 
     // Guardar preview das equipes (cópia profunda)
     previewTeams.value = JSON.parse(JSON.stringify(drawnTeams))
@@ -784,7 +818,7 @@ const redrawTeams = () => {
 }
 
 const confirmTeams = () => {
-  // As equipes já foram atualizadas no composable pelo drawTeams/drawRandomTeams
+  // As equipes já foram atualizadas no store pelo drawTeams
   emit('drawn')
   emit('close')
 }

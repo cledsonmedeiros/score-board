@@ -2,9 +2,9 @@
   <div class="flex items-center gap-2">
     <input
       type="range"
-      min="1"
-      max="5"
-      step="0.5"
+      :min="SKILL_MIN"
+      :max="SKILL_MAX"
+      :step="SKILL_STEP"
       :value="modelValue"
       :disabled="disabled"
       @input="
@@ -14,7 +14,7 @@
         sm:w-28"
     />
     <span
-      class="w-7 shrink-0 text-right text-sm font-semibold tabular-nums
+      class="w-9 shrink-0 text-right text-sm font-semibold tabular-nums
         text-gray-700"
     >
       {{ modelValue.toFixed(1) }}
@@ -23,6 +23,8 @@
 </template>
 
 <script setup lang="ts">
+import { SKILL_MAX, SKILL_MIN, SKILL_STEP } from '~/utils/playerProfile'
+
 interface Props {
   modelValue: number
   disabled?: boolean
