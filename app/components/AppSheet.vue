@@ -24,7 +24,7 @@
     :dismissible="dismissible"
     :close="true"
     handle-only
-    :ui="{ container: 'pb-[max(1rem,env(safe-area-inset-bottom))]' }"
+    :ui="$slots.footer ? drawerWithFooterUi : drawerUi"
     @after:leave="emit('close')"
   >
     <template #body>
@@ -68,6 +68,17 @@ const modalWidth = {
   '2xl': 'sm:max-w-2xl',
   '3xl': 'sm:max-w-3xl',
 } as const
+
+const SAFE_BOTTOM = 'pb-[max(1rem,env(safe-area-inset-bottom))]'
+
+const drawerUi = { container: SAFE_BOTTOM }
+
+/** No celular, as ações do rodapé ficam grudadas no fim, sempre visíveis. */
+const drawerWithFooterUi = {
+  container: 'pb-0',
+  footer: `sticky bottom-0 -mx-4 mt-auto border-t border-default bg-default
+    px-4 pt-3 ${SAFE_BOTTOM}`,
+}
 
 /** Fecha com animação (o `close` sai depois, em `after:leave`). */
 const close = () => {

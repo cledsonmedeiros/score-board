@@ -1,22 +1,17 @@
 <template>
   <div class="flex gap-1" role="group" aria-label="Posições do jogador">
-    <button
+    <UButton
       v-for="position in POSITIONS"
       :key="position"
-      type="button"
+      :size="size"
+      :color="modelValue[position] ? 'success' : 'neutral'"
+      :variant="modelValue[position] ? 'subtle' : 'outline'"
       :aria-pressed="modelValue[position]"
       :title="POSITION_LABELS[position].full"
+      :label="POSITION_LABELS[position].short"
+      :class="modelValue[position] ? '' : 'text-dimmed'"
       @click="toggle(position)"
-      class="rounded-md border px-2 text-xs font-semibold transition-colors"
-      :class="[
-        size === 'sm' ? 'h-8' : 'h-[38px]',
-        modelValue[position]
-          ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-          : 'border-gray-300 bg-white text-gray-400 hover:border-gray-400',
-      ]"
-    >
-      {{ POSITION_LABELS[position].short }}
-    </button>
+    />
   </div>
 </template>
 

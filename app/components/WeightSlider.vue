@@ -1,21 +1,18 @@
 <template>
   <div class="flex items-center gap-2">
-    <input
-      type="range"
+    <USlider
       :min="SKILL_MIN"
       :max="SKILL_MAX"
       :step="SKILL_STEP"
-      :value="modelValue"
+      :model-value="modelValue"
       :disabled="disabled"
-      @input="
-        $emit('update', Number(($event.target as HTMLInputElement).value))
-      "
-      class="h-2 w-24 cursor-pointer accent-blue-600 disabled:cursor-not-allowed
-        sm:w-28"
+      aria-label="Nível de habilidade"
+      class="w-24 sm:w-28"
+      @update:model-value="(value) => $emit('update', value as number)"
     />
     <span
-      class="w-9 shrink-0 text-right text-sm font-semibold tabular-nums
-        text-gray-700"
+      class="w-9 shrink-0 text-right text-sm font-semibold text-gray-700
+        tabular-nums"
     >
       {{ modelValue.toFixed(1) }}
     </span>

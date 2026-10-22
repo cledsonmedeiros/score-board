@@ -1,41 +1,18 @@
 <template>
-  <div
-    class="inline-flex overflow-hidden rounded-lg border border-gray-300"
-    role="group"
-    aria-label="Gênero"
-  >
-    <button
-      type="button"
+  <UFieldGroup role="group" aria-label="Gênero">
+    <UButton
+      v-for="option in OPTIONS"
+      :key="option.value"
+      :size="size"
       :disabled="disabled"
-      @click="$emit('update', 'M')"
-      class="font-semibold transition-colors disabled:cursor-not-allowed"
-      :class="[
-        size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-sm',
-        modelValue === 'M'
-          ? 'bg-blue-600 text-white'
-          : 'bg-white text-gray-600 hover:bg-gray-50',
-      ]"
-      title="Masculino"
-    >
-      ♂ M
-    </button>
-    <button
-      type="button"
-      :disabled="disabled"
-      @click="$emit('update', 'F')"
-      class="border-l border-gray-300 font-semibold transition-colors
-        disabled:cursor-not-allowed"
-      :class="[
-        size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-sm',
-        modelValue === 'F'
-          ? 'bg-pink-600 text-white'
-          : 'bg-white text-gray-600 hover:bg-gray-50',
-      ]"
-      title="Feminino"
-    >
-      ♀ F
-    </button>
-  </div>
+      :color="modelValue === option.value ? option.color : 'neutral'"
+      :variant="modelValue === option.value ? 'solid' : 'outline'"
+      :aria-pressed="modelValue === option.value"
+      :title="option.title"
+      :label="option.label"
+      @click="$emit('update', option.value)"
+    />
+  </UFieldGroup>
 </template>
 
 <script setup lang="ts">
@@ -55,4 +32,9 @@ withDefaults(defineProps<Props>(), {
 defineEmits<{
   update: [value: Gender]
 }>()
+
+const OPTIONS = [
+  { value: 'M', label: '♂ M', title: 'Masculino', color: 'primary' },
+  { value: 'F', label: '♀ F', title: 'Feminino', color: 'secondary' },
+] as const
 </script>

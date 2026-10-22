@@ -1,14 +1,17 @@
 <template>
   <div
     v-if="matchHasScore"
-    class="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2
+    class="absolute top-1/2 left-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2
       items-center justify-between rounded-full border border-white/20
       bg-white/10 shadow-xl backdrop-blur-md"
-    :class="isLandscape ? 'gap-6 p-4 sm:gap-4 sm:p-3' : 'gap-4 p-3 sm:gap-3 sm:p-2.5'"
+    :class="
+      isLandscape ? 'gap-6 p-4 sm:gap-4 sm:p-3' : 'gap-4 p-3 sm:gap-3 sm:p-2.5'
+    "
   >
     <button
       :class="[btnConfig.base, btnConfig.red]"
       :disabled="!redTeamHasScore"
+      aria-label="Tirar um ponto da equipe vermelha"
       @click="store.decrementTeamScore('red')"
     >
       <Icon
@@ -18,6 +21,7 @@
     </button>
 
     <button
+      aria-label="Zerar placar"
       @click="handleResetScores()"
       :class="[btnConfig.base, btnConfig.reset]"
     >
@@ -31,6 +35,7 @@
     <button
       :class="[btnConfig.base, btnConfig.blue]"
       :disabled="!blueTeamHasScore"
+      aria-label="Tirar um ponto da equipe azul"
       @click="store.decrementTeamScore('blue')"
     >
       <Icon
@@ -55,7 +60,9 @@ const btnConfig = {
 
 const redTeamHasScore = computed(() => store.redTeam?.score > 0)
 const blueTeamHasScore = computed(() => store.blueTeam?.score > 0)
-const matchHasScore = computed(() => redTeamHasScore.value || blueTeamHasScore.value)
+const matchHasScore = computed(
+  () => redTeamHasScore.value || blueTeamHasScore.value,
+)
 
 const handleResetScores = async () => {
   const confirmed = await askConfirm({

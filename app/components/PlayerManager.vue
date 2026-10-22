@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-dvh w-full flex-col items-center p-3 md:p-6">
+  <div class="flex w-full flex-col items-center p-3 md:p-6">
     <!-- Container centralizado -->
     <div class="w-full max-w-5xl space-y-6">
       <!-- Formulário de Adição -->
@@ -8,24 +8,15 @@
           @submit.prevent="handleAddPlayer"
           class="flex flex-col gap-2 md:flex-row md:items-end md:gap-3"
         >
-          <div class="flex-1">
-            <label class="mb-1 block text-xs font-medium text-gray-700"
-              >Nome</label
-            >
-            <input
+          <UFormField label="Nome" class="flex-1">
+            <UInput
               v-model="newPlayerName"
-              type="text"
               placeholder="Nome do jogador"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
-                focus:border-blue-500 focus:outline-hidden focus:ring-2
-                focus:ring-blue-500"
               required
+              class="w-full"
             />
-          </div>
-          <div class="shrink-0">
-            <label class="mb-1 block text-xs font-medium text-gray-700"
-              >Nível</label
-            >
+          </UFormField>
+          <UFormField label="Nível" class="shrink-0">
             <div
               class="flex h-[38px] items-center rounded-lg border
                 border-gray-300 bg-white px-3"
@@ -35,35 +26,24 @@
                 @update="newPlayerWeight = $event"
               />
             </div>
-          </div>
-          <div class="shrink-0">
-            <label class="mb-1 block text-xs font-medium text-gray-700"
-              >Gênero</label
-            >
+          </UFormField>
+          <UFormField label="Gênero" class="shrink-0">
             <GenderToggle
               :model-value="newPlayerGender"
               @update="newPlayerGender = $event"
             />
-          </div>
-          <div class="shrink-0">
-            <label class="mb-1 block text-xs font-medium text-gray-700"
-              >Posições</label
-            >
+          </UFormField>
+          <UFormField label="Posições" class="shrink-0">
             <PositionToggles
               :model-value="newPlayerPositions"
               @update="newPlayerPositions = $event"
             />
-          </div>
-          <div class="flex">
-            <button
-              type="submit"
-              class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm
-                font-semibold text-white transition-colors hover:bg-blue-700
-                md:w-auto"
-            >
-              Adicionar
-            </button>
-          </div>
+          </UFormField>
+          <UButton
+            type="submit"
+            label="Adicionar"
+            class="w-full justify-center md:w-auto"
+          />
         </form>
       </div>
 
@@ -73,19 +53,16 @@
           <h2 class="text-lg font-semibold text-gray-800">
             {{ filteredPlayers.length }} Jogadores
           </h2>
-          <button
+          <UButton
             v-if="store.players.length > 0"
+            color="neutral"
+            variant="soft"
+            :label="showOnlyEnabled ? 'Mostrar Todos' : 'Apenas Habilitados'"
             @click="showOnlyEnabled = !showOnlyEnabled"
-            class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium
-              text-gray-700 transition-colors hover:bg-gray-200"
-          >
-            {{ showOnlyEnabled ? 'Mostrar Todos' : 'Apenas Habilitados' }}
-          </button>
+          />
         </div>
 
-        <div
-          class="max-h-[calc(100dvh-500px)] overflow-y-auto overflow-x-hidden"
-        >
+        <div class="overflow-x-hidden">
           <div v-if="filteredPlayers.length === 0" class="p-8 text-center">
             <p class="text-gray-500">
               {{
@@ -110,27 +87,19 @@
             <!-- Linha 1 no mobile (vira parte da linha única a partir de sm):
               habilitar/desabilitar, nome e remover -->
             <div class="flex items-center gap-3 sm:contents">
-              <!-- Toggle Habilitado/Desabilitado -->
-              <button
-                @click="store.togglePlayerEnabled(player.id)"
-                :class="[
-                  `flex h-10 w-10 shrink-0 items-center justify-center
-                  rounded-full transition-colors`,
-                  player.enabled
-                    ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                    : 'bg-gray-200 text-gray-400 hover:bg-gray-300',
-                ]"
+              <!-- Habilitado para sorteio -->
+              <USwitch
+                :model-value="player.enabled"
+                size="lg"
+                color="success"
+                :aria-label="
+                  player.enabled ? 'Desabilitar jogador' : 'Habilitar jogador'
+                "
                 :title="
                   player.enabled ? 'Desabilitar jogador' : 'Habilitar jogador'
                 "
-              >
-                <Icon
-                  :name="
-                    player.enabled ? 'heroicons:check' : 'heroicons:x-mark'
-                  "
-                  class="h-6 w-6"
-                />
-              </button>
+                @update:model-value="store.togglePlayerEnabled(player.id)"
+              />
 
               <!-- Nome (editável) -->
               <div class="min-w-0 flex-1">
@@ -143,7 +112,7 @@
                   @keyup.esc="cancelEdit"
                   type="text"
                   class="w-full rounded border border-blue-300 px-2 py-1
-                    focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                 />
                 <div v-else class="flex items-center gap-2">
                   <span
@@ -154,27 +123,29 @@
                     :title="player.name"
                     >{{ truncateText(player.name) }}</span
                   >
-                  <button
-                    @click="startEdit(player)"
-                    class="shrink-0 text-gray-400 hover:text-blue-600"
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    icon="i-heroicons-pencil-square"
+                    aria-label="Editar nome"
                     title="Editar nome"
-                  >
-                    <Icon name="heroicons:pencil-square" class="h-4 w-4" />
-                  </button>
+                    @click="startEdit(player)"
+                  />
                 </div>
               </div>
 
               <!-- Remover: no mobile fica junto do nome; a partir de sm, vai
                 para o fim da linha (segunda cópia abaixo) -->
-              <button
-                @click="handleRemovePlayer(player.id)"
-                class="flex h-8 w-8 shrink-0 items-center justify-center
-                  rounded-full text-red-600 transition-colors hover:bg-red-50
-                  sm:hidden"
+              <UButton
+                color="error"
+                variant="ghost"
+                icon="i-heroicons-trash"
+                class="shrink-0 rounded-full sm:hidden"
+                aria-label="Remover jogador"
                 title="Remover jogador"
-              >
-                <Icon name="heroicons:trash" class="h-5 w-5" />
-              </button>
+                @click="handleRemovePlayer(player.id)"
+              />
             </div>
 
             <!-- Linha 2 no mobile (nível e gênero); a partir de sm, junta-se
@@ -183,30 +154,27 @@
               quebra para uma 3ª linha em vez de ser cortado pelo
               overflow-x-hidden da lista. -->
             <div class="flex flex-wrap items-center gap-3 sm:contents">
-              <button
-                type="button"
-                @click="store.updatePlayer(player.id, { seed: !player.seed })"
+              <UButton
+                :color="player.seed ? 'warning' : 'neutral'"
+                :variant="player.seed ? 'soft' : 'ghost'"
+                :icon="
+                  player.seed ? 'i-heroicons-star-solid' : 'i-heroicons-star'
+                "
+                class="shrink-0 rounded-full"
+                :class="player.seed ? '' : 'text-dimmed'"
                 :aria-pressed="player.seed"
+                :aria-label="
+                  player.seed
+                    ? 'Cabeça de chave (clique para remover)'
+                    : 'Marcar como cabeça de chave'
+                "
                 :title="
                   player.seed
                     ? 'Cabeça de chave (clique para remover)'
                     : 'Marcar como cabeça de chave'
                 "
-                class="flex h-8 w-8 shrink-0 items-center justify-center
-                  rounded-full transition-colors"
-                :class="
-                  player.seed
-                    ? 'bg-yellow-100 text-yellow-500 hover:bg-yellow-200'
-                    : 'text-gray-300 hover:bg-gray-100 hover:text-gray-400'
-                "
-              >
-                <Icon
-                  :name="
-                    player.seed ? 'heroicons:star-solid' : 'heroicons:star'
-                  "
-                  class="h-5 w-5"
-                />
-              </button>
+                @click="store.updatePlayer(player.id, { seed: !player.seed })"
+              />
 
               <div class="shrink-0">
                 <WeightSlider
@@ -232,15 +200,15 @@
               </div>
 
               <!-- Remover: cópia visível só a partir de sm (ver linha 1) -->
-              <button
-                @click="handleRemovePlayer(player.id)"
-                class="hidden h-8 w-8 shrink-0 items-center justify-center
-                  rounded-full text-red-600 transition-colors hover:bg-red-50
-                  sm:flex"
+              <UButton
+                color="error"
+                variant="ghost"
+                icon="i-heroicons-trash"
+                class="hidden shrink-0 rounded-full sm:flex"
+                aria-label="Remover jogador"
                 title="Remover jogador"
-              >
-                <Icon name="heroicons:trash" class="h-5 w-5" />
-              </button>
+                @click="handleRemovePlayer(player.id)"
+              />
             </div>
           </div>
         </div>

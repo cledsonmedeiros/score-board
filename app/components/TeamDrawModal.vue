@@ -1,32 +1,14 @@
 <template>
   <AppSheet ref="sheet" :title="sheetTitle" size="3xl" @close="$emit('close')">
     <!-- Modo de Criação -->
-    <div v-if="!showPreview" class="mb-4 flex gap-2">
-      <button
-        @click="creationMode = 'auto'"
-        class="flex-1 rounded-lg border-2 px-4 py-2 text-sm font-semibold
-          transition-colors"
-        :class="
-          creationMode === 'auto'
-            ? 'border-blue-500 bg-blue-50 text-blue-700'
-            : 'border-gray-300 text-gray-600 hover:border-gray-400'
-        "
-      >
-        🎲 Sorteio
-      </button>
-      <button
-        @click="switchToManualMode"
-        class="flex-1 rounded-lg border-2 px-4 py-2 text-sm font-semibold
-          transition-colors"
-        :class="
-          creationMode === 'manual'
-            ? 'border-blue-500 bg-blue-50 text-blue-700'
-            : 'border-gray-300 text-gray-600 hover:border-gray-400'
-        "
-      >
-        ✋ Manual
-      </button>
-    </div>
+    <UTabs
+      v-if="!showPreview"
+      :items="MODE_ITEMS"
+      :model-value="creationMode"
+      :content="false"
+      class="mb-4"
+      @update:model-value="selectMode"
+    />
 
     <!-- Aviso se não houver jogadores -->
     <div
@@ -42,34 +24,6 @@
     <!-- Preview das Equipes Sorteadas -->
     <div v-else-if="showPreview && previewTeams">
       <DrawPreview :teams="previewTeams" :bench="previewBench" />
-
-      <!-- Botões de Ação do Preview -->
-      <div class="flex flex-col gap-2">
-        <div class="flex gap-2">
-          <button
-            @click="redrawTeams"
-            class="flex-1 rounded-lg border border-orange-300 bg-orange-50 px-4
-              py-2.5 font-semibold text-orange-700 transition-colors
-              hover:bg-orange-100"
-          >
-            🔄 Sortear Novamente
-          </button>
-          <button
-            @click="confirmTeams"
-            class="flex-1 rounded-lg bg-green-600 px-4 py-2.5 font-semibold
-              text-white transition-colors hover:bg-green-700"
-          >
-            ✓ Confirmar Equipes
-          </button>
-        </div>
-        <button
-          @click="backToConfig"
-          class="w-full rounded-lg border border-gray-300 px-4 py-2.5
-            font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-        >
-          ← Voltar
-        </button>
-      </div>
     </div>
 
     <!-- Configuração do Sorteio -->
@@ -90,111 +44,60 @@
       <!-- Configurações -->
       <div class="mb-6 space-y-4">
         <!-- Quantidade de equipes -->
-        <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700"
-            >Quantidade de Equipes</label
-          >
-          <input
-            v-model.number="numberOfTeams"
-            type="number"
+        <UFormField
+          label="Quantidade de Equipes"
+          :help="`Mínimo: ${MIN_TEAMS} | Máximo: ${maxTeams}`"
+        >
+          <UInputNumber
+            v-model="numberOfTeams"
             :min="MIN_TEAMS"
             :max="maxTeams"
-            class="w-full rounded-lg border border-gray-300 px-4 py-2
-              focus:border-blue-500 focus:ring-2 focus:ring-blue-500
-              focus:outline-hidden"
+            class="w-full"
           />
-          <p class="mt-1 text-xs text-gray-500">
-            Mínimo: {{ MIN_TEAMS }} | Máximo: {{ maxTeams }}
-          </p>
-        </div>
+        </UFormField>
 
         <!-- Jogadores por equipe (opcional) -->
-        <div>
-          <label
-            for="players-per-team"
-            class="mb-2 block text-sm font-medium text-gray-700"
-            >Jogadores por Equipe
-            <span class="font-normal text-gray-500">(opcional)</span></label
-          >
-          <input
-            id="players-per-team"
-            v-model.number="playersPerTeam"
-            type="number"
-            min="1"
-            :max="maxPlayersPerTeam"
-            placeholder="Todos jogam"
-            data-testid="players-per-team"
-            class="w-full rounded-lg border border-gray-300 px-4 py-2
-              focus:border-blue-500 focus:ring-2 focus:ring-blue-500
-              focus:outline-hidden"
-          />
-          <p class="mt-1 text-xs text-gray-500">
-            Em branco, todos jogam. Preenchido, quem sobrar fica de fora.
-          </p>
-          <p
-            v-if="teamSizeLabel"
-            class="mt-1 text-xs font-semibold"
-            :class="isValidPlayersPerTeam ? 'text-blue-600' : 'text-red-600'"
-          >
-            {{ teamSizeLabel }}
-          </p>
-        </div>
+        <UFormField
+          label="Jogadores por Equipe"
+          hint="opcional"
+          help="Em branco, todos jogam. Preenchido, quem sobrar fica de fora."
+        >
+          <div class="flex gap-2">
+            <UInputNumber
+              v-model.optional="playersPerTeam"
+              :min="1"
+              :max="maxPlayersPerTeam"
+              placeholder="Todos jogam"
+              data-testid="players-per-team"
+              class="flex-1"
+            />
+            <UButton
+              v-if="playersPerTeam !== undefined"
+              color="neutral"
+              variant="ghost"
+              icon="i-heroicons-x-mark"
+              aria-label="Limpar: todos jogam"
+              @click="playersPerTeam = undefined"
+            />
+          </div>
+        </UFormField>
+        <p
+          v-if="teamSizeLabel"
+          class="-mt-2 text-xs font-semibold"
+          :class="isValidPlayersPerTeam ? 'text-primary' : 'text-error'"
+        >
+          {{ teamSizeLabel }}
+        </p>
 
         <!-- Tipo de sorteio -->
-        <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700"
-            >Tipo de Sorteio</label
-          >
-          <div class="flex flex-col gap-3 md:flex-row md:gap-4">
-            <label
-              class="flex flex-1 cursor-pointer items-center gap-3 rounded-lg
-                border-2 p-3 transition-colors md:p-4"
-              :class="
-                drawType === 'balanced'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-300 hover:border-gray-400'
-              "
-            >
-              <input
-                v-model="drawType"
-                type="radio"
-                value="balanced"
-                class="h-4 w-4 text-blue-600"
-              />
-              <div class="flex-1">
-                <p class="font-semibold text-gray-800">Balanceado</p>
-                <p class="text-xs text-gray-600">
-                  Espalha cabeças de chave; equilibra posições, habilidade e
-                  gênero (nessa ordem)
-                </p>
-              </div>
-            </label>
-
-            <label
-              class="flex flex-1 cursor-pointer items-center gap-3 rounded-lg
-                border-2 p-3 transition-colors md:p-4"
-              :class="
-                drawType === 'random'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-300 hover:border-gray-400'
-              "
-            >
-              <input
-                v-model="drawType"
-                type="radio"
-                value="random"
-                class="h-4 w-4 text-blue-600"
-              />
-              <div class="flex-1">
-                <p class="font-semibold text-gray-800">Aleatório</p>
-                <p class="text-xs text-gray-600">
-                  Ignora habilidade; espalha cabeças de chave e equilibra
-                  posições e gênero
-                </p>
-              </div>
-            </label>
-          </div>
-        </div>
+        <UFormField label="Tipo de Sorteio">
+          <URadioGroup
+            v-model="drawType"
+            :items="DRAW_TYPE_ITEMS"
+            variant="card"
+            :ui="{ fieldset: 'flex-col gap-3 md:flex-row', item: 'flex-1' }"
+          />
+        </UFormField>
 
         <!-- Restrições de Sorteio -->
         <PairRulesEditor />
@@ -214,26 +117,6 @@
             />
           </div>
         </div>
-      </div>
-
-      <!-- Botões de Ação -->
-      <div class="flex flex-col gap-3 md:flex-row">
-        <button
-          @click="sheet?.close()"
-          class="flex-1 rounded-lg border border-gray-300 px-6 py-3
-            font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-        >
-          Cancelar
-        </button>
-        <button
-          @click="handleDraw"
-          :disabled="!isValidNumberOfTeams || !isValidPlayersPerTeam"
-          class="flex-1 rounded-lg bg-blue-600 px-6 py-3 font-semibold
-            text-white transition-colors hover:bg-blue-700
-            disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Sortear Equipes
-        </button>
       </div>
     </div>
 
@@ -266,27 +149,24 @@
           {{ manualTeams.length === 1 ? 'equipe' : 'equipes' }}
         </p>
         <div class="flex gap-2">
-          <button
+          <UButton
             v-if="store.allTeams.length > 0"
-            @click="resetManualTeams"
-            class="rounded-lg border border-gray-300 bg-white px-3 py-1.5
-              text-sm font-semibold text-gray-700 transition-colors
-              hover:bg-gray-50"
+            color="neutral"
+            variant="outline"
+            size="sm"
+            icon="i-heroicons-arrow-path"
+            label="Resetar"
             title="Começar do zero"
-          >
-            <Icon name="heroicons:arrow-path" class="inline h-4 w-4" />
-            Resetar
-          </button>
-          <button
-            @click="addManualTeam"
+            @click="resetManualTeams"
+          />
+          <UButton
+            variant="soft"
+            size="sm"
+            icon="i-heroicons-plus"
+            label="Adicionar Equipe"
             :disabled="manualTeams.length >= 5"
-            class="rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5
-              text-sm font-semibold text-blue-700 transition-colors
-              hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Icon name="heroicons:plus" class="inline h-4 w-4" />
-            Adicionar Equipe
-          </button>
+            @click="addManualTeam"
+          />
         </div>
       </div>
 
@@ -311,7 +191,7 @@
       </div>
 
       <!-- Equipes Manuais -->
-      <div class="mb-4 max-h-96 space-y-3 overflow-y-auto">
+      <div class="mb-4 space-y-3">
         <div
           v-for="(team, index) in manualTeams"
           :key="index"
@@ -327,15 +207,16 @@
               :class="teamPalette(index).title"
               placeholder="Nome da Equipe"
             />
-            <button
-              @click="removeManualTeam(index)"
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              icon="i-heroicons-trash"
+              class="ml-2 hover:text-error"
+              aria-label="Remover equipe"
               :disabled="manualTeams.length <= 2"
-              class="ml-2 rounded p-1 text-gray-400 transition-colors
-                hover:bg-white/50 hover:text-red-600 disabled:cursor-not-allowed
-                disabled:opacity-30"
-            >
-              <Icon name="heroicons:trash" class="h-4 w-4" />
-            </button>
+              @click="removeManualTeam(index)"
+            />
           </div>
 
           <div
@@ -346,17 +227,19 @@
               <div
                 v-for="member in team.members"
                 :key="member.id"
-                class="group relative"
+                class="group inline-flex items-center gap-0.5"
               >
                 <PlayerBadge :player="member" />
-                <button
+                <UButton
+                  color="error"
+                  variant="ghost"
+                  size="sm"
+                  icon="i-heroicons-x-circle-solid"
+                  class="rounded-full p-0.5 transition-opacity md:opacity-0
+                    md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                  :aria-label="`Tirar ${member.name} da equipe`"
                   @click.stop="removePlayerFromTeam(index, member.id)"
-                  class="absolute -top-1 -right-1 flex h-5 w-5 items-center
-                    justify-center rounded-full bg-red-500 text-white shadow-lg
-                    transition-opacity md:opacity-0 md:group-hover:opacity-100"
-                >
-                  <Icon name="heroicons:x-mark" class="h-3 w-3" />
-                </button>
+                />
               </div>
             </div>
             <p v-else class="text-center text-sm text-gray-500">
@@ -367,26 +250,6 @@
           <!-- Info da Equipe -->
           <TeamSummaryLine :team="team" />
         </div>
-      </div>
-
-      <!-- Botões de Ação -->
-      <div class="flex flex-col gap-3 md:flex-row">
-        <button
-          @click="sheet?.close()"
-          class="flex-1 rounded-lg border border-gray-300 px-6 py-3
-            font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-        >
-          Cancelar
-        </button>
-        <button
-          @click="confirmManualTeams"
-          :disabled="!canConfirmManualTeams"
-          class="flex-1 rounded-lg bg-green-600 px-6 py-3 font-semibold
-            text-white transition-colors hover:bg-green-700
-            disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          ✓ Confirmar Equipes
-        </button>
       </div>
     </div>
 
@@ -428,6 +291,69 @@
         </div>
       </template>
     </UModal>
+    <template #footer>
+      <!-- Preview: sortear de novo / confirmar / voltar -->
+      <div v-if="showPreview" class="grid w-full grid-cols-2 gap-2">
+        <UButton
+          class="justify-center"
+          color="warning"
+          variant="soft"
+          size="lg"
+          icon="i-heroicons-arrow-path"
+          label="Sortear Novamente"
+          @click="redrawTeams"
+        />
+        <UButton
+          class="justify-center"
+          color="success"
+          size="lg"
+          icon="i-heroicons-check"
+          label="Confirmar"
+          @click="confirmTeams"
+        />
+        <UButton
+          class="col-span-2 justify-center"
+          color="neutral"
+          variant="outline"
+          icon="i-heroicons-arrow-left"
+          label="Voltar"
+          @click="backToConfig"
+        />
+      </div>
+
+      <div v-else class="grid w-full grid-cols-2 gap-2">
+        <UButton
+          class="justify-center"
+          color="neutral"
+          variant="outline"
+          size="lg"
+          label="Cancelar"
+          @click="sheet?.close()"
+        />
+        <UButton
+          v-if="creationMode === 'auto'"
+          class="justify-center"
+          size="lg"
+          label="Sortear Equipes"
+          :disabled="
+            store.enabledPlayers.length === 0 ||
+            !isValidNumberOfTeams ||
+            !isValidPlayersPerTeam
+          "
+          @click="handleDraw"
+        />
+        <UButton
+          v-else
+          class="justify-center"
+          color="success"
+          size="lg"
+          icon="i-heroicons-check"
+          label="Confirmar"
+          :disabled="!canConfirmManualTeams"
+          @click="confirmManualTeams"
+        />
+      </div>
+    </template>
   </AppSheet>
 </template>
 
@@ -447,6 +373,31 @@ const sheet = useTemplateRef('sheet')
 // Modo de criação: 'auto' (sorteio) ou 'manual'
 const creationMode = ref<'auto' | 'manual'>('auto')
 
+const MODE_ITEMS = [
+  { label: 'Sorteio', icon: 'i-heroicons-sparkles', value: 'auto' },
+  { label: 'Manual', icon: 'i-heroicons-hand-raised', value: 'manual' },
+]
+
+const DRAW_TYPE_ITEMS = [
+  {
+    value: 'balanced',
+    label: 'Balanceado',
+    description:
+      'Espalha cabeças de chave; equilibra posições, habilidade e gênero (nessa ordem)',
+  },
+  {
+    value: 'random',
+    label: 'Aleatório',
+    description:
+      'Ignora habilidade; espalha cabeças de chave e equilibra posições e gênero',
+  },
+]
+
+const selectMode = (mode: string | number) => {
+  if (mode === 'manual') switchToManualMode()
+  else creationMode.value = 'auto'
+}
+
 // Estados do modo automático
 const MIN_TEAMS = 2
 const DEFAULT_TEAMS = 3
@@ -457,7 +408,7 @@ const drawType = ref<'balanced' | 'random'>('balanced')
 const previewTeams = ref<Team[] | null>(null)
 const previewBench = ref<Player[]>([])
 /** Vazio = todos jogam (tamanhos diferem em no máximo 1). */
-const playersPerTeam = ref<number | ''>('')
+const playersPerTeam = ref<number>()
 const showPreview = ref(false)
 const sheetTitle = computed(() => {
   if (showPreview.value) return 'Equipes Sorteadas'
@@ -485,9 +436,7 @@ const plural = (count: number, singular: string, pluralForm: string) =>
   count === 1 ? singular : pluralForm
 
 /** Tamanho fixo informado, ou `undefined` quando todos jogam. */
-const fixedTeamSize = computed(() =>
-  playersPerTeam.value === '' ? undefined : playersPerTeam.value,
-)
+const fixedTeamSize = computed(() => playersPerTeam.value)
 
 const maxPlayersPerTeam = computed(() =>
   isValidNumberOfTeams.value

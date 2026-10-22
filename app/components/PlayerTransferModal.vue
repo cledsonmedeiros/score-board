@@ -1,29 +1,6 @@
 <template>
   <AppSheet title="Exportar / Importar Dados" size="xl" @close="handleClose">
-    <div class="mb-4 grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-1">
-      <button
-        @click="mode = 'export'"
-        :class="[
-          'rounded-md px-3 py-2 text-sm font-semibold transition-colors',
-          mode === 'export'
-            ? 'bg-white text-blue-700 shadow-xs'
-            : 'text-gray-600 hover:text-gray-800',
-        ]"
-      >
-        Exportar
-      </button>
-      <button
-        @click="mode = 'import'"
-        :class="[
-          'rounded-md px-3 py-2 text-sm font-semibold transition-colors',
-          mode === 'import'
-            ? 'bg-white text-blue-700 shadow-xs'
-            : 'text-gray-600 hover:text-gray-800',
-        ]"
-      >
-        Importar
-      </button>
-    </div>
+    <UTabs v-model="mode" :items="MODE_ITEMS" :content="false" class="mb-4" />
 
     <div v-if="mode === 'export'" class="space-y-4">
       <p class="text-sm text-gray-600">
@@ -34,20 +11,20 @@
         <label class="mb-2 block text-xs font-semibold text-gray-700">
           Base64 dos dados (jogadores + regras)
         </label>
-        <textarea
-          :value="exportBase64"
+        <UTextarea
+          :model-value="exportBase64"
           readonly
-          rows="4"
-          class="w-full resize-none rounded-lg border border-gray-300 bg-white
-            px-3 py-2 text-xs focus:outline-hidden"
+          :rows="4"
+          class="w-full"
+          :ui="{ base: 'resize-none' }"
         />
-        <button
+        <UButton
+          block
+          class="mt-3"
+          icon="i-heroicons-clipboard-document"
+          label="Copiar Base64"
           @click="handleCopyBase64"
-          class="mt-3 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm
-            font-semibold text-white transition-colors hover:bg-blue-700"
-        >
-          Copiar Base64
-        </button>
+        />
       </div>
 
       <div class="rounded-lg border border-gray-200 p-3">
@@ -78,23 +55,21 @@
         <label class="mb-2 block text-xs font-semibold text-gray-700">
           Colar Base64
         </label>
-        <textarea
+        <UTextarea
           v-model="importBase64"
-          rows="4"
+          :rows="4"
           placeholder="Cole aqui o conteúdo Base64"
-          class="w-full resize-none rounded-lg border border-gray-300 bg-white
-            px-3 py-2 text-xs focus:border-blue-500 focus:ring-2
-            focus:ring-blue-500 focus:outline-hidden"
+          class="w-full"
+          :ui="{ base: 'resize-none' }"
         />
-        <button
-          @click="handleImportBase64"
+        <UButton
+          block
+          class="mt-3"
+          color="success"
+          label="Importar Base64"
           :disabled="!importBase64.trim()"
-          class="mt-3 w-full rounded-lg bg-green-600 px-4 py-2 text-sm
-            font-semibold text-white transition-colors hover:bg-green-700
-            disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Importar Base64
-        </button>
+          @click="handleImportBase64"
+        />
       </div>
 
       <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
@@ -105,25 +80,23 @@
           Sem peso nem gênero: os jogadores entram com valores padrão para você
           ajustar depois na lista de jogadores.
         </p>
-        <textarea
+        <UTextarea
           v-model="nameListText"
-          rows="5"
+          :rows="5"
           placeholder="João
 Maria
 Pedro"
-          class="w-full resize-none rounded-lg border border-gray-300 bg-white
-            px-3 py-2 text-sm focus:border-blue-500 focus:ring-2
-            focus:ring-blue-500 focus:outline-hidden"
+          class="w-full"
+          :ui="{ base: 'resize-none' }"
         />
-        <button
-          @click="handleImportNameList"
+        <UButton
+          block
+          class="mt-3"
+          color="success"
+          label="Importar Lista"
           :disabled="!nameListText.trim()"
-          class="mt-3 w-full rounded-lg bg-green-600 px-4 py-2 text-sm
-            font-semibold text-white transition-colors hover:bg-green-700
-            disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Importar Lista
-        </button>
+          @click="handleImportNameList"
+        />
       </div>
 
       <div class="rounded-lg border border-gray-200 p-3">
@@ -131,18 +104,13 @@ Pedro"
           Importar via câmera
         </label>
 
-        <button
+        <UButton
+          block
+          :color="cameraActive ? 'error' : 'primary'"
+          :icon="cameraActive ? 'i-heroicons-stop' : 'i-heroicons-camera'"
+          :label="cameraActive ? 'Parar câmera' : 'Ler QR pela câmera'"
           @click="cameraActive ? stopCameraScan() : startCameraScan()"
-          class="w-full rounded-lg px-4 py-2 text-sm font-semibold text-white
-            transition-colors"
-          :class="
-            cameraActive
-              ? 'bg-red-600 hover:bg-red-700'
-              : 'bg-blue-600 hover:bg-blue-700'
-          "
-        >
-          {{ cameraActive ? 'Parar câmera' : 'Ler QR pela câmera' }}
-        </button>
+        />
 
         <p v-if="!isCameraSupported" class="mt-2 text-xs text-amber-700">
           Este navegador não expõe acesso à câmera aqui (verifique se está em
@@ -209,17 +177,13 @@ Pedro"
       </div>
     </div>
 
-    <p
+    <UAlert
       v-if="feedbackMessage"
-      class="mt-4 rounded-lg px-3 py-2 text-sm"
-      :class="
-        feedbackType === 'success'
-          ? 'bg-green-50 text-green-700'
-          : 'bg-red-50 text-red-700'
-      "
-    >
-      {{ feedbackMessage }}
-    </p>
+      class="mt-4"
+      variant="subtle"
+      :color="feedbackType === 'success' ? 'success' : 'error'"
+      :title="feedbackMessage"
+    />
   </AppSheet>
 </template>
 
@@ -229,6 +193,11 @@ import jsQR from 'jsqr'
 
 const store = useScoreboardStore()
 const { openPrompt } = usePrompt()
+
+const MODE_ITEMS = [
+  { label: 'Exportar', icon: 'i-heroicons-arrow-up-tray', value: 'export' },
+  { label: 'Importar', icon: 'i-heroicons-arrow-down-tray', value: 'import' },
+]
 
 const emit = defineEmits<{
   close: []

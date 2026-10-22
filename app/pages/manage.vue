@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-dvh flex-col">
     <!-- Header com navegação -->
-    <header class="border-b bg-white shadow-xs">
+    <header class="shrink-0 border-b bg-white shadow-xs">
       <div class="flex flex-col gap-3 p-3 md:p-4">
         <div class="flex items-center justify-between">
           <h1 class="text-lg font-bold text-gray-800 md:text-xl">
@@ -64,9 +64,12 @@
     </header>
 
     <!-- Conteúdo -->
-    <div class="container mx-auto flex justify-center px-2 sm:px-4 md:px-6">
+    <main
+      class="container mx-auto flex min-h-0 flex-1 justify-center
+        overflow-y-auto px-2 sm:px-4 md:px-6"
+    >
       <PlayerManager />
-    </div>
+    </main>
 
     <!-- Modal de sorteio -->
     <LazyTeamDrawModal
