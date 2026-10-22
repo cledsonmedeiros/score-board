@@ -1,5 +1,9 @@
 <template>
-  <UApp :toaster="{ position: 'top-center' }">
+  <UApp :locale="pt_br" :toaster="{ position: 'top-center' }">
     <NuxtPage />
   </UApp>
 </template>
+
+<script setup lang="ts">
+import { pt_br } from '@nuxt/ui/locale'
+</script>

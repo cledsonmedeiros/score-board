@@ -1,226 +1,226 @@
 <template>
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-    @click.self="handleClose"
-  >
-    <div
-      class="w-full max-w-xl rounded-xl bg-white p-4 shadow-2xl md:p-6"
-      @click.stop
-    >
-      <div class="mb-4 flex items-center justify-between md:mb-6">
-        <h2 class="text-xl font-bold text-gray-800 md:text-2xl">
-          Exportar / Importar Dados
-        </h2>
+  <AppSheet title="Exportar / Importar Dados" size="xl" @close="handleClose">
+    <div class="mb-4 grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-1">
+      <button
+        @click="mode = 'export'"
+        :class="[
+          'rounded-md px-3 py-2 text-sm font-semibold transition-colors',
+          mode === 'export'
+            ? 'bg-white text-blue-700 shadow-xs'
+            : 'text-gray-600 hover:text-gray-800',
+        ]"
+      >
+        Exportar
+      </button>
+      <button
+        @click="mode = 'import'"
+        :class="[
+          'rounded-md px-3 py-2 text-sm font-semibold transition-colors',
+          mode === 'import'
+            ? 'bg-white text-blue-700 shadow-xs'
+            : 'text-gray-600 hover:text-gray-800',
+        ]"
+      >
+        Importar
+      </button>
+    </div>
+
+    <div v-if="mode === 'export'" class="space-y-4">
+      <p class="text-sm text-gray-600">
+        Compartilhe jogadores e restrições via QR Code ou copiando o Base64.
+      </p>
+
+      <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+        <label class="mb-2 block text-xs font-semibold text-gray-700">
+          Base64 dos dados (jogadores + regras)
+        </label>
+        <textarea
+          :value="exportBase64"
+          readonly
+          rows="4"
+          class="w-full resize-none rounded-lg border border-gray-300 bg-white
+            px-3 py-2 text-xs focus:outline-hidden"
+        />
         <button
-          @click="handleClose"
-          class="flex h-8 w-8 items-center justify-center rounded-full
-            text-gray-400 transition-colors hover:bg-gray-100
-            hover:text-gray-600"
+          @click="handleCopyBase64"
+          class="mt-3 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm
+            font-semibold text-white transition-colors hover:bg-blue-700"
         >
-          <Icon name="heroicons:x-mark" class="h-5 w-5" />
+          Copiar Base64
         </button>
       </div>
 
-      <div class="mb-4 grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-1">
-        <button
-          @click="mode = 'export'"
-          :class="[
-            'rounded-md px-3 py-2 text-sm font-semibold transition-colors',
-            mode === 'export'
-              ? 'bg-white text-blue-700 shadow-xs'
-              : 'text-gray-600 hover:text-gray-800',
-          ]"
-        >
-          Exportar
-        </button>
-        <button
-          @click="mode = 'import'"
-          :class="[
-            'rounded-md px-3 py-2 text-sm font-semibold transition-colors',
-            mode === 'import'
-              ? 'bg-white text-blue-700 shadow-xs'
-              : 'text-gray-600 hover:text-gray-800',
-          ]"
-        >
-          Importar
-        </button>
-      </div>
-
-      <div v-if="mode === 'export'" class="space-y-4">
-        <p class="text-sm text-gray-600">
-          Compartilhe jogadores e restrições via QR Code ou copiando o Base64.
-        </p>
-
-        <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
-          <label class="mb-2 block text-xs font-semibold text-gray-700">
-            Base64 dos dados (jogadores + regras)
-          </label>
-          <textarea
-            :value="exportBase64"
-            readonly
-            rows="4"
-            class="w-full resize-none rounded-lg border border-gray-300 bg-white
-              px-3 py-2 text-xs focus:outline-hidden"
+      <div class="rounded-lg border border-gray-200 p-3">
+        <label class="mb-2 block text-xs font-semibold text-gray-700">
+          QR Code
+        </label>
+        <div class="flex justify-center rounded-lg bg-white p-3">
+          <img
+            v-if="qrCodeDataUrl"
+            :src="qrCodeDataUrl"
+            alt="QR Code dos dados de jogadores e regras"
+            class="h-52 w-52"
           />
-          <button
-            @click="handleCopyBase64"
-            class="mt-3 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm
-              font-semibold text-white transition-colors hover:bg-blue-700"
-          >
-            Copiar Base64
-          </button>
-        </div>
-
-        <div class="rounded-lg border border-gray-200 p-3">
-          <label class="mb-2 block text-xs font-semibold text-gray-700">
-            QR Code
-          </label>
-          <div class="flex justify-center rounded-lg bg-white p-3">
-            <img
-              v-if="qrCodeDataUrl"
-              :src="qrCodeDataUrl"
-              alt="QR Code dos dados de jogadores e regras"
-              class="h-52 w-52"
-            />
-            <div v-else class="py-8 text-sm text-gray-500">
-              Erro ao gerar QR Code
-            </div>
+          <div v-else class="py-8 text-sm text-gray-500">
+            Erro ao gerar QR Code
           </div>
         </div>
       </div>
+    </div>
 
-      <div v-else class="space-y-4">
-        <p class="text-sm text-gray-600">
-          A importação mescla jogadores e regras com os dados atuais, ignorando
-          duplicados.
+    <div v-else class="space-y-4">
+      <p class="text-sm text-gray-600">
+        A importação mescla jogadores e regras com os dados atuais, ignorando
+        duplicados.
+      </p>
+
+      <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+        <label class="mb-2 block text-xs font-semibold text-gray-700">
+          Colar Base64
+        </label>
+        <textarea
+          v-model="importBase64"
+          rows="4"
+          placeholder="Cole aqui o conteúdo Base64"
+          class="w-full resize-none rounded-lg border border-gray-300 bg-white
+            px-3 py-2 text-xs focus:border-blue-500 focus:ring-2
+            focus:ring-blue-500 focus:outline-hidden"
+        />
+        <button
+          @click="handleImportBase64"
+          :disabled="!importBase64.trim()"
+          class="mt-3 w-full rounded-lg bg-green-600 px-4 py-2 text-sm
+            font-semibold text-white transition-colors hover:bg-green-700
+            disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Importar Base64
+        </button>
+      </div>
+
+      <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+        <label class="mb-2 block text-xs font-semibold text-gray-700">
+          Lista de nomes (um por linha)
+        </label>
+        <p class="mb-2 text-xs text-gray-500">
+          Sem peso nem gênero: os jogadores entram com valores padrão para você
+          ajustar depois na lista de jogadores.
         </p>
-
-        <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
-          <label class="mb-2 block text-xs font-semibold text-gray-700">
-            Colar Base64
-          </label>
-          <textarea
-            v-model="importBase64"
-            rows="4"
-            placeholder="Cole aqui o conteúdo Base64"
-            class="w-full resize-none rounded-lg border border-gray-300 bg-white
-              px-3 py-2 text-xs focus:border-blue-500 focus:outline-hidden
-              focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            @click="handleImportBase64"
-            :disabled="!importBase64.trim()"
-            class="mt-3 w-full rounded-lg bg-green-600 px-4 py-2 text-sm
-              font-semibold text-white transition-colors hover:bg-green-700
-              disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Importar Base64
-          </button>
-        </div>
-
-        <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
-          <label class="mb-2 block text-xs font-semibold text-gray-700">
-            Lista de nomes (um por linha)
-          </label>
-          <p class="mb-2 text-xs text-gray-500">
-            Sem peso nem gênero: os jogadores entram com valores padrão para
-            você ajustar depois na lista de jogadores.
-          </p>
-          <textarea
-            v-model="nameListText"
-            rows="5"
-            placeholder="João
+        <textarea
+          v-model="nameListText"
+          rows="5"
+          placeholder="João
 Maria
 Pedro"
-            class="w-full resize-none rounded-lg border border-gray-300 bg-white
-              px-3 py-2 text-sm focus:border-blue-500 focus:outline-hidden
-              focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            @click="handleImportNameList"
-            :disabled="!nameListText.trim()"
-            class="mt-3 w-full rounded-lg bg-green-600 px-4 py-2 text-sm
-              font-semibold text-white transition-colors hover:bg-green-700
-              disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Importar Lista
-          </button>
-        </div>
+          class="w-full resize-none rounded-lg border border-gray-300 bg-white
+            px-3 py-2 text-sm focus:border-blue-500 focus:ring-2
+            focus:ring-blue-500 focus:outline-hidden"
+        />
+        <button
+          @click="handleImportNameList"
+          :disabled="!nameListText.trim()"
+          class="mt-3 w-full rounded-lg bg-green-600 px-4 py-2 text-sm
+            font-semibold text-white transition-colors hover:bg-green-700
+            disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Importar Lista
+        </button>
+      </div>
 
-        <div class="rounded-lg border border-gray-200 p-3">
-          <label class="mb-2 block text-xs font-semibold text-gray-700">
-            Importar via câmera
-          </label>
+      <div class="rounded-lg border border-gray-200 p-3">
+        <label class="mb-2 block text-xs font-semibold text-gray-700">
+          Importar via câmera
+        </label>
 
-          <button
-            @click="cameraActive ? stopCameraScan() : startCameraScan()"
-            class="w-full rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
-            :class="cameraActive ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
-          >
-            {{ cameraActive ? 'Parar câmera' : 'Ler QR pela câmera' }}
-          </button>
+        <button
+          @click="cameraActive ? stopCameraScan() : startCameraScan()"
+          class="w-full rounded-lg px-4 py-2 text-sm font-semibold text-white
+            transition-colors"
+          :class="
+            cameraActive
+              ? 'bg-red-600 hover:bg-red-700'
+              : 'bg-blue-600 hover:bg-blue-700'
+          "
+        >
+          {{ cameraActive ? 'Parar câmera' : 'Ler QR pela câmera' }}
+        </button>
 
-          <p v-if="!isCameraSupported" class="mt-2 text-xs text-amber-700">
-            Este navegador não expõe acesso à câmera aqui (verifique se está
-            em HTTPS).
-          </p>
+        <p v-if="!isCameraSupported" class="mt-2 text-xs text-amber-700">
+          Este navegador não expõe acesso à câmera aqui (verifique se está em
+          HTTPS).
+        </p>
 
-          <div v-if="cameraActive" class="mt-3 overflow-hidden rounded-lg border border-gray-200 bg-black">
-            <div ref="cameraWrapperRef" class="relative">
-              <video
-                ref="videoRef"
-                autoplay
-                playsinline
-                muted
-                class="h-56 w-full object-cover"
-              />
+        <div
+          v-if="cameraActive"
+          class="mt-3 overflow-hidden rounded-lg border border-gray-200
+            bg-black"
+        >
+          <div ref="cameraWrapperRef" class="relative">
+            <video
+              ref="videoRef"
+              autoplay
+              playsinline
+              muted
+              class="h-56 w-full object-cover"
+            />
 
-              <div class="pointer-events-none absolute inset-x-0 top-0 bg-black/55 px-3 py-2 text-center text-xs font-semibold text-white">
-                Aponte a câmera para o QR Code
-              </div>
+            <div
+              class="pointer-events-none absolute inset-x-0 top-0 bg-black/55
+                px-3 py-2 text-center text-xs font-semibold text-white"
+            >
+              Aponte a câmera para o QR Code
+            </div>
 
-              <div class="pointer-events-none absolute inset-0 flex items-center justify-center px-6 py-10">
-                <div ref="guideFrameRef" class="h-40 w-40 rounded-2xl border-2 border-white/85 shadow-inner"></div>
-              </div>
+            <div
+              class="pointer-events-none absolute inset-0 flex items-center
+                justify-center px-6 py-10"
+            >
+              <div
+                ref="guideFrameRef"
+                class="h-40 w-40 rounded-2xl border-2 border-white/85
+                  shadow-inner"
+              ></div>
+            </div>
 
-              <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-black/45 px-3 py-1.5 text-center text-[11px] text-white/90">
-                A importação acontece automaticamente ao detectar
-              </div>
+            <div
+              class="pointer-events-none absolute inset-x-0 bottom-0 bg-black/45
+                px-3 py-1.5 text-center text-[11px] text-white/90"
+            >
+              A importação acontece automaticamente ao detectar
             </div>
           </div>
         </div>
-
-        <div class="rounded-lg border border-gray-200 p-3">
-          <label class="mb-2 block text-xs font-semibold text-gray-700">
-            Importar via QR Code (imagem)
-          </label>
-          <input
-            type="file"
-            accept="image/*"
-            @change="handleQrImageSelected"
-            class="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg
-              file:border-0 file:bg-blue-50 file:px-3 file:py-2
-              file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
-          />
-          <p class="mt-2 text-xs text-gray-500">
-            Selecione uma imagem contendo o QR Code para importar.
-          </p>
-        </div>
       </div>
 
-      <p
-        v-if="feedbackMessage"
-        class="mt-4 rounded-lg px-3 py-2 text-sm"
-        :class="
-          feedbackType === 'success'
-            ? 'bg-green-50 text-green-700'
-            : 'bg-red-50 text-red-700'
-        "
-      >
-        {{ feedbackMessage }}
-      </p>
+      <div class="rounded-lg border border-gray-200 p-3">
+        <label class="mb-2 block text-xs font-semibold text-gray-700">
+          Importar via QR Code (imagem)
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          @change="handleQrImageSelected"
+          class="block w-full text-sm text-gray-700 file:mr-3 file:rounded-lg
+            file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-semibold
+            file:text-blue-700 hover:file:bg-blue-100"
+        />
+        <p class="mt-2 text-xs text-gray-500">
+          Selecione uma imagem contendo o QR Code para importar.
+        </p>
+      </div>
     </div>
-  </div>
+
+    <p
+      v-if="feedbackMessage"
+      class="mt-4 rounded-lg px-3 py-2 text-sm"
+      :class="
+        feedbackType === 'success'
+          ? 'bg-green-50 text-green-700'
+          : 'bg-red-50 text-red-700'
+      "
+    >
+      {{ feedbackMessage }}
+    </p>
+  </AppSheet>
 </template>
 
 <script setup lang="ts">
@@ -332,9 +332,13 @@ const generateQrCode = async () => {
   }
 }
 
-watch(exportBase64, () => {
-  generateQrCode()
-}, { immediate: true })
+watch(
+  exportBase64,
+  () => {
+    generateQrCode()
+  },
+  { immediate: true },
+)
 
 const handleCopyBase64 = async () => {
   try {
@@ -625,10 +629,7 @@ const handleQrImageSelected = async (event: Event) => {
       replaceLocalData,
     )
 
-    setFeedback(
-      'success',
-      `QR importado. ${formatImportSummary(result)}`,
-    )
+    setFeedback('success', `QR importado. ${formatImportSummary(result)}`)
   } catch {
     setFeedback(
       'error',
