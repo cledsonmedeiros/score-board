@@ -1,3 +1,5 @@
+import PromptDialog from '~/components/PromptDialog.vue'
+
 export interface PromptOption {
   label: string
   value: string
@@ -12,38 +14,18 @@ export interface PromptRequest {
   closeValue?: string | null
 }
 
-let activeResolver: ((value: string | null) => void) | null = null
-
+/**
+ * Diálogos de escolha/confirmação sobre o overlay do Nuxt UI.
+ * `openPrompt` resolve com o `value` da opção escolhida, ou com `closeValue`
+ * quando o diálogo é fechado sem escolha (fora dele ou Esc).
+ */
 export const usePrompt = () => {
-  const request = useState<PromptRequest | null>('app-prompt-request', () => null)
+  const overlay = useOverlay()
 
-  const openPrompt = (nextRequest: PromptRequest) => {
-    const closeOnBackdrop = nextRequest.closeOnBackdrop ?? true
-    const closeValue = nextRequest.closeValue ?? null
-
-    if (activeResolver) {
-      activeResolver(closeValue)
-      activeResolver = null
-    }
-
-    request.value = {
-      ...nextRequest,
-      closeOnBackdrop,
-      closeValue,
-    }
-
-    return new Promise<string | null>((resolve) => {
-      activeResolver = resolve
-    })
-  }
-
-  const resolvePrompt = (value: string | null) => {
-    request.value = null
-
-    if (activeResolver) {
-      activeResolver(value)
-      activeResolver = null
-    }
+  const openPrompt = async (request: PromptRequest): Promise<string | null> => {
+    const dialog = overlay.create(PromptDialog, { destroyOnClose: true })
+    const result = await dialog.open(request).result
+    return result ?? request.closeValue ?? null
   }
 
   const askConfirm = async (params: {
@@ -58,14 +40,14 @@ export const usePrompt = () => {
       message: params.message,
       options: [
         {
-          label: params.cancelLabel ?? 'Cancelar',
-          value: 'cancel',
-          tone: 'neutral',
-        },
-        {
           label: params.confirmLabel ?? 'Confirmar',
           value: 'confirm',
           tone: params.confirmTone ?? 'primary',
+        },
+        {
+          label: params.cancelLabel ?? 'Cancelar',
+          value: 'cancel',
+          tone: 'neutral',
         },
       ],
       closeOnBackdrop: true,
@@ -75,10 +57,5 @@ export const usePrompt = () => {
     return result === 'confirm'
   }
 
-  return {
-    request,
-    openPrompt,
-    resolvePrompt,
-    askConfirm,
-  }
+  return { openPrompt, askConfirm }
 }

@@ -165,6 +165,8 @@
 <script setup lang="ts">
 import type { Player, Team } from '~/stores/scoreboard'
 
+const notify = useNotify()
+
 defineEmits<{
   close: []
 }>()
@@ -256,10 +258,10 @@ const shareTeams = async () => {
 const fallbackShare = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text)
-    alert('Texto copiado para a área de transferência!')
+    notify.success('Texto copiado para a área de transferência!')
   } catch (error) {
     console.error('Erro ao copiar:', error)
-    alert('Não foi possível compartilhar. Tente novamente.')
+    notify.error('Não foi possível compartilhar. Tente novamente.')
   }
 }
 </script>

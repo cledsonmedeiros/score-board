@@ -688,6 +688,7 @@ const emit = defineEmits<{
 
 const store = useScoreboardStore()
 const { askConfirm } = usePrompt()
+const notify = useNotify()
 
 // Modo de criação: 'auto' (sorteio) ou 'manual'
 const creationMode = ref<'auto' | 'manual'>('auto')
@@ -846,14 +847,14 @@ const canConfirmManualTeams = computed(() => {
 const handleDraw = () => {
   try {
     if (!isValidNumberOfTeams.value) {
-      alert(
+      notify.error(
         `Escolha entre ${MIN_TEAMS} e ${store.enabledPlayers.length} equipes.`,
       )
       return
     }
 
     if (!isValidPlayersPerTeam.value) {
-      alert(teamSizeLabel.value)
+      notify.error(teamSizeLabel.value)
       return
     }
 
@@ -872,13 +873,13 @@ const handleDraw = () => {
     const message = error instanceof Error
       ? error.message
       : 'Erro ao sortear equipes. Tente novamente.'
-    alert(message)
+    notify.error(message)
   }
 }
 
 const handleAddPairRule = () => {
   if (!constraintPlayerAId.value || !constraintPlayerBId.value) {
-    alert('Selecione os dois jogadores para adicionar a restrição.')
+    notify.error('Selecione os dois jogadores para adicionar a restrição.')
     return
   }
 
@@ -890,7 +891,7 @@ const handleAddPairRule = () => {
     )
 
     if (!addedRule) {
-      alert('Essa restrição já existe.')
+      notify.error('Essa restrição já existe.')
       return
     }
 
@@ -900,7 +901,7 @@ const handleAddPairRule = () => {
     const message = error instanceof Error
       ? error.message
       : 'Não foi possível adicionar a restrição.'
-    alert(message)
+    notify.error(message)
   }
 }
 
@@ -1072,13 +1073,13 @@ const getTeamTextColor = (index: number) => {
 const confirmManualTeams = () => {
   if (!canConfirmManualTeams.value) {
     if (unassignedPlayers.value.length > 0) {
-      alert(
+      notify.error(
         `Ainda há ${unassignedPlayers.value.length} ${
           unassignedPlayers.value.length === 1 ? 'jogador' : 'jogadores'
         } sem equipe. Aloque todos os jogadores antes de confirmar.`,
       )
     } else {
-      alert(
+      notify.error(
         'Certifique-se de que pelo menos 2 equipes tenham jogadores alocados.',
       )
     }
