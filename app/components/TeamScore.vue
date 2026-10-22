@@ -13,8 +13,8 @@
         `score absolute text-center text-base font-black tracking-widest
         text-white sm:text-lg md:text-2xl`,
         position === 'top'
-          ? 'left-0 right-0 top-2 sm:top-3'
-          : 'bottom-4 left-0 right-0 sm:bottom-6',
+          ? 'top-2 right-0 left-0 sm:top-3'
+          : 'right-0 bottom-4 left-0 sm:bottom-6',
       ]"
     >
       {{ team.name }}
@@ -24,10 +24,10 @@
     <div
       v-if="team.members && team.members.length > 0"
       :class="[
-        `absolute max-h-[18dvh] overflow-hidden px-3 sm:px-4 md:px-8`,
+        'absolute max-h-[18dvh] overflow-hidden px-3 sm:px-4 md:px-8',
         position === 'top'
-          ? 'left-0 right-0 top-8 sm:top-12 md:top-16'
-          : 'bottom-10 left-0 right-0 sm:bottom-14 md:bottom-20',
+          ? 'top-8 right-0 left-0 sm:top-12 md:top-16'
+          : 'right-0 bottom-10 left-0 sm:bottom-14 md:bottom-20',
       ]"
     >
       <div
@@ -41,9 +41,8 @@
             sm:py-1 md:px-4 md:py-1.5"
         >
           <span
-            class="block max-w-20 truncate text-[10px] font-semibold
-              text-white sm:max-w-[120px] sm:text-xs md:max-w-[180px]
-              md:text-sm"
+            class="block max-w-20 truncate text-[10px] font-semibold text-white
+              sm:max-w-[120px] sm:text-xs md:max-w-[180px] md:text-sm"
             :title="member.name"
             >{{ member.name }}</span
           >
@@ -55,10 +54,7 @@
     <Transition name="score-change" mode="out-in">
       <div
         :key="team.score"
-        :class="[
-          'score font-black leading-none text-white',
-          scoreSizeClass,
-        ]"
+        :class="['score leading-none font-black text-white', scoreSizeClass]"
       >
         {{ team.score }}
       </div>
@@ -78,8 +74,8 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const team = computed(() => 
-  props.color === 'red' ? store.redTeam : store.blueTeam
+const team = computed(() =>
+  props.color === 'red' ? store.redTeam : store.blueTeam,
 )
 
 const bgColor = computed(() =>
@@ -100,7 +96,9 @@ const position = computed(() => {
 // metade da altura da tela (bem mais alto na prática), então mantém o
 // tamanho grande original.
 const scoreSizeClass = computed(() =>
-  isLandscape.value ? 'text-[7rem] sm:text-[8rem]' : 'text-[11rem] sm:text-[12.5rem]',
+  isLandscape.value
+    ? 'text-[7rem] sm:text-[8rem]'
+    : 'text-[11rem] sm:text-[12.5rem]',
 )
 </script>
 

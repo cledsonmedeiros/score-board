@@ -580,9 +580,9 @@ describe('TeamDrawer', () => {
         const others = Array.from({ length: 7 }, () => makePlayer(5))
         const { teams, bench } = drawWithBench([...seeds, ...others], 2, 4)
 
-        expect(teams.map((t) => t.members.filter((m) => m.seed).length)).toEqual(
-          [1, 1],
-        )
+        expect(
+          teams.map((t) => t.members.filter((m) => m.seed).length),
+        ).toEqual([1, 1])
         expect(bench.filter((p) => p.seed)).toHaveLength(1)
       }
     })
@@ -623,7 +623,14 @@ describe('TeamDrawer', () => {
     it('"não pode jogar junto" não impede os dois de ficarem de fora', () => {
       const [a, b, c, d] = Array.from({ length: 4 }, () => makePlayer(5))
       const extras = [makePlayer(5), makePlayer(5)]
-      const rules = [rule(a!, b!), rule(a!, c!), rule(a!, d!), rule(b!, c!), rule(b!, d!), rule(c!, d!)]
+      const rules = [
+        rule(a!, b!),
+        rule(a!, c!),
+        rule(a!, d!),
+        rule(b!, c!),
+        rule(b!, d!),
+        rule(c!, d!),
+      ]
       // 4 jogadores que não podem jogar entre si, 2 equipes de 2: a única
       // saída é 2 deles irem para o banco juntos.
       const { teams, bench } = drawWithBench(

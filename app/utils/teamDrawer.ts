@@ -260,9 +260,7 @@ export class TeamDrawer {
     let best: { teamOf: number[]; cost: Cost }[] = []
     // O equilíbrio só considera as equipes que jogam; o banco fica de fora da conta.
     const evaluate: CostFunction =
-      this.benchSlot === -1
-        ? costOf
-        : (stats) => costOf(withoutLastSlot(stats))
+      this.benchSlot === -1 ? costOf : (stats) => costOf(withoutLastSlot(stats))
 
     const consider = (teamOf: number[]) => {
       const cost = this.improve(teamOf, evaluate)
@@ -550,7 +548,10 @@ export class TeamDrawer {
     // preserva automaticamente a quantidade de equipes de cada tamanho.
     const withinBounds = (slot: number, size: number) =>
       size >= this.minSizeOf(slot) && size <= this.maxSizeOf(slot)
-    if (!withinBounds(fromTeam, newFromSize) || !withinBounds(toTeam, newToSize)) {
+    if (
+      !withinBounds(fromTeam, newFromSize) ||
+      !withinBounds(toTeam, newToSize)
+    ) {
       return false
     }
 
