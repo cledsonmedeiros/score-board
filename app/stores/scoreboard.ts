@@ -104,7 +104,8 @@ export const useScoreboardStore = defineStore('scoreboard', {
     enabledPlayers: (state) => state.players.filter((p) => p.enabled),
     redTeam: (state) => state.teams.red,
     blueTeam: (state) => state.teams.blue,
-    availableTeams: (state) => state.allTeams.filter((t) => t.members.length > 0),
+    availableTeams: (state) =>
+      state.allTeams.filter((t) => t.members.length > 0),
   },
 
   actions: {
@@ -173,8 +174,12 @@ export const useScoreboardStore = defineStore('scoreboard', {
 
       const pairRulesPayload = this.pairRules
         .map((rule): PairRuleImportData | null => {
-          const playerA = this.players.find((player) => player.id === rule.playerAId)
-          const playerB = this.players.find((player) => player.id === rule.playerBId)
+          const playerA = this.players.find(
+            (player) => player.id === rule.playerAId,
+          )
+          const playerB = this.players.find(
+            (player) => player.id === rule.playerBId,
+          )
 
           if (!playerA || !playerB) {
             return null
@@ -196,7 +201,9 @@ export const useScoreboardStore = defineStore('scoreboard', {
 
       const json = JSON.stringify(payload)
       const bytes = new TextEncoder().encode(json)
-      const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('')
+      const binary = Array.from(bytes, (byte) =>
+        String.fromCharCode(byte),
+      ).join('')
       return btoa(binary)
     },
 
@@ -539,7 +546,10 @@ export const useScoreboardStore = defineStore('scoreboard', {
 
     saveAllTeams() {
       if (import.meta.client) {
-        localStorage.setItem(ALL_TEAMS_STORAGE_KEY, JSON.stringify(this.allTeams))
+        localStorage.setItem(
+          ALL_TEAMS_STORAGE_KEY,
+          JSON.stringify(this.allTeams),
+        )
       }
     },
 
@@ -625,7 +635,8 @@ export const useScoreboardStore = defineStore('scoreboard', {
       const conflict = findContradictoryRule([...this.pairRules, rule])
       if (conflict) {
         const nameOf = (id: string) =>
-          this.players.find((player) => player.id === id)?.name ?? 'Jogador removido'
+          this.players.find((player) => player.id === id)?.name ??
+          'Jogador removido'
         throw new Error(
           `Essa regra gera um conflito: ${nameOf(conflict.playerAId)} e ${nameOf(conflict.playerBId)} não podem jogar juntos, mas ficariam no mesmo grupo de "deve jogar com".`,
         )
@@ -749,13 +760,17 @@ export const useScoreboardStore = defineStore('scoreboard', {
       let memberBIndex = -1
 
       this.allTeams.forEach((team, teamIndex) => {
-        const indexInTeam = team.members.findIndex((member) => member.id === playerAId)
+        const indexInTeam = team.members.findIndex(
+          (member) => member.id === playerAId,
+        )
         if (indexInTeam !== -1) {
           teamAIndex = teamIndex
           memberAIndex = indexInTeam
         }
 
-        const otherIndexInTeam = team.members.findIndex((member) => member.id === playerBId)
+        const otherIndexInTeam = team.members.findIndex(
+          (member) => member.id === playerBId,
+        )
         if (otherIndexInTeam !== -1) {
           teamBIndex = teamIndex
           memberBIndex = otherIndexInTeam
