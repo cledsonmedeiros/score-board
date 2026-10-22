@@ -16,6 +16,37 @@ export default defineNuxtConfig({
   // para modo escuro.
   colorMode: false,
 
+  // PWA 100% offline: todos os ícones vão no bundle do cliente e nunca são
+  // buscados na API pública do Iconify (que falharia sem internet).
+  icon: {
+    provider: 'none',
+    fallbackToApi: false,
+    clientBundle: {
+      // Ícones usados no código do app (heroicons).
+      scan: { globInclude: ['app/**/*.{vue,ts}'] },
+      // Ícones internos dos componentes do Nuxt UI usados aqui (fechar,
+      // setas do select, +/- do campo numérico, carregando, avisos).
+      icons: [
+        'lucide:x',
+        'lucide:check',
+        'lucide:chevron-down',
+        'lucide:chevron-up',
+        'lucide:chevron-left',
+        'lucide:chevron-right',
+        'lucide:plus',
+        'lucide:minus',
+        'lucide:loader-circle',
+        'lucide:arrow-left',
+        'lucide:arrow-right',
+        'lucide:circle-check',
+        'lucide:circle-x',
+        'lucide:circle-alert',
+        'lucide:triangle-alert',
+        'lucide:info',
+      ],
+    },
+  },
+
   // O app é 100% client-side (Pinia + localStorage, sem chamadas de API).
   // Sem SSR: o servidor não tem acesso ao localStorage, então qualquer HTML
   // renderizado no servidor sairia sem jogadores/equipes e divergiria do
