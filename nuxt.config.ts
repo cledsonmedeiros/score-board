@@ -12,9 +12,12 @@ export default defineNuxtConfig({
   // chaves `icon` e `fonts` abaixo).
   modules: ['@nuxt/ui', '@pinia/nuxt', '@vite-pwa/nuxt'],
 
-  // Só tema claro por enquanto: o placar vermelho/azul não foi desenhado
-  // para modo escuro.
-  colorMode: false,
+  ui: {
+    // Só tema claro: o placar vermelho/azul não foi desenhado para modo
+    // escuro. Precisa ficar em `ui.colorMode` — sem isso o Nuxt UI registra
+    // o @nuxtjs/color-mode, que segue o tema do sistema (classe `dark`).
+    colorMode: false,
+  },
 
   // PWA 100% offline: todos os ícones vão no bundle do cliente e nunca são
   // buscados na API pública do Iconify (que falharia sem internet).
