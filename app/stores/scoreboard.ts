@@ -7,6 +7,7 @@ import {
   normalizeSkill,
   type PlayerPositions,
 } from '~/utils/playerProfile'
+import { planAttendance } from '~/utils/attendanceList'
 import {
   PLAYER_STORAGE_KEYS,
   migrateLegacyStorage,
@@ -701,6 +702,56 @@ export const useScoreboardStore = defineStore('scoreboard', {
         return player.enabled
       }
       return false
+    },
+
+    /**
+     * Aplica uma lista de presença: quem está na lista fica habilitado (e é
+     * criado com nível padrão se não existir); os demais ficam desabilitados.
+     * Ninguém é removido, e as regras de dupla são mantidas.
+     */
+    applyAttendanceList(items: Array<{ name: string; gender: Gender }>) {
+      const plan = planAttendance(
+        this.players,
+        items.map((item) => item.name),
+      )
+      const genderByIndex = items.map((item) =>
+        this.normalizeGender(item.gender),
+      )
+      const toDisable = new Set(plan.disableIds)
+      let created = 0
+      let enabled = 0
+      let disabled = 0
+
+      this.players.forEach((player) => {
+        if (toDisable.has(player.id) && player.enabled) {
+          player.enabled = false
+          disabled++
+        }
+      })
+
+      plan.entries.forEach((entry, index) => {
+        const existing = entry.existingId
+          ? this.players.find((player) => player.id === entry.existingId)
+          : undefined
+
+        if (existing) {
+          existing.enabled = true
+          enabled++
+          return
+        }
+
+        const newPlayer = this.buildImportedPlayer(
+          { name: entry.name, gender: genderByIndex[index] },
+          `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+        )
+        if (newPlayer) {
+          this.players.push(newPlayer)
+          created++
+        }
+      })
+
+      this.savePlayers()
+      return { created, enabled, disabled }
     },
 
     // Teams
