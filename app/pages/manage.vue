@@ -7,53 +7,59 @@
           <h1 class="text-lg font-bold text-gray-800 md:text-xl">
             Gerenciamento de Equipes
           </h1>
-          <div class="flex gap-2">
-            <button
-              @click="showTransferModal = true"
-              class="flex items-center gap-1.5 rounded-lg border-2
-                border-indigo-300 bg-white px-3 py-2 text-sm font-semibold
-                text-indigo-700 shadow-xs transition-all hover:bg-indigo-50
-                active:scale-95 active:bg-indigo-100"
+          <div class="flex items-center gap-2">
+            <!-- Desktop: ações visíveis -->
+            <UButton
+              class="hidden sm:inline-flex"
+              color="neutral"
+              variant="outline"
+              icon="i-heroicons-qr-code"
+              label="Importar/Exportar"
               title="Exportar ou importar jogadores"
-            >
-              <Icon name="heroicons:qr-code" class="h-4 w-4" />
-              <span class="hidden sm:inline">Importar/Exportar</span>
-            </button>
-            <button
-              @click="handleClearAll"
-              class="flex items-center gap-1.5 rounded-lg border-2
-                border-red-300 bg-white px-3 py-2 text-sm font-semibold
-                text-red-600 shadow-xs transition-all hover:bg-red-50
-                active:scale-95 active:bg-red-100"
+              @click="showTransferModal = true"
+            />
+            <UButton
+              class="hidden sm:inline-flex"
+              color="error"
+              variant="outline"
+              icon="i-heroicons-trash"
+              label="Limpar Tudo"
               title="Limpar todos os dados"
+              @click="handleClearAll"
+            />
+
+            <!-- Celular: ações secundárias num menu -->
+            <UDropdownMenu
+              :items="secondaryActions"
+              :content="{ align: 'end' }"
             >
-              <Icon name="heroicons:trash" class="h-4 w-4" />
-              <span class="hidden sm:inline">Limpar Tudo</span>
-            </button>
-            <NuxtLink
+              <UButton
+                class="sm:hidden"
+                color="neutral"
+                variant="outline"
+                icon="i-heroicons-ellipsis-vertical"
+                aria-label="Mais ações"
+              />
+            </UDropdownMenu>
+
+            <UButton
               to="/"
-              class="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2
-                text-sm font-semibold text-white shadow-xs transition-all
-                hover:bg-blue-700 active:scale-95 active:bg-blue-800 md:px-4"
-            >
-              <Icon name="heroicons:chart-bar-square" class="h-4 w-4" />
-              <span class="hidden sm:inline">Ir para </span>
-              <span>Placar</span>
-            </NuxtLink>
+              icon="i-heroicons-chart-bar-square"
+              label="Placar"
+            />
           </div>
         </div>
 
         <!-- Botão de sortear integrado ao header -->
-        <button
+        <UButton
           v-if="store.enabledPlayers.length >= 2"
+          block
+          size="lg"
+          color="success"
+          icon="i-heroicons-user-group-solid"
+          :label="`Sortear Equipes (${store.enabledPlayers.length} jogadores)`"
           @click="showDrawModal = true"
-          class="flex w-full items-center justify-center gap-2 rounded-lg
-            bg-green-600 px-4 py-3 text-sm font-semibold text-white
-            shadow-xs transition-colors hover:bg-green-700 active:bg-green-800"
-        >
-          <Icon name="heroicons:user-group-solid" class="h-5 w-5" />
-          <span>Sortear Equipes ({{ store.enabledPlayers.length }} jogadores)</span>
-        </button>
+        />
       </div>
     </header>
 
@@ -77,10 +83,26 @@
 </template>
 
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
+
 const store = useScoreboardStore()
 const showDrawModal = ref(false)
 const showTransferModal = ref(false)
 const { askConfirm } = usePrompt()
+
+const secondaryActions: DropdownMenuItem[] = [
+  {
+    label: 'Importar/Exportar',
+    icon: 'i-heroicons-qr-code',
+    onSelect: () => (showTransferModal.value = true),
+  },
+  {
+    label: 'Limpar Tudo',
+    icon: 'i-heroicons-trash',
+    color: 'error',
+    onSelect: () => handleClearAll(),
+  },
+]
 
 const handleTeamsDrawn = () => {
   // Redirecionar para a página do placar após sortear
