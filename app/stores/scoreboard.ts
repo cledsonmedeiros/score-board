@@ -703,7 +703,9 @@ export const useScoreboardStore = defineStore('scoreboard', {
         this.players,
         items.map((item) => item.name),
       )
-      const genderByIndex = items.map((item) => this.normalizeGender(item.gender))
+      const genderByIndex = items.map((item) =>
+        this.normalizeGender(item.gender),
+      )
       const toDisable = new Set(plan.disableIds)
       let created = 0
       let enabled = 0
