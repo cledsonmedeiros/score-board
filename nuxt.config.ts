@@ -71,7 +71,9 @@ export default defineNuxtConfig({
   },
 
   pwa: {
-    registerType: 'autoUpdate',
+    // Versão nova não recarrega sozinha: o app mostra um aviso com o botão
+    // "Atualizar" (PwaUpdateNotifier), para nunca recarregar no meio do jogo.
+    registerType: 'prompt',
     manifestFilename: 'manifest.json',
     includeAssets: ['favicon.ico', 'scoreboard-logo.svg'],
     manifest: {
@@ -100,12 +102,21 @@ export default defineNuxtConfig({
     },
     client: {
       // Verifica se há uma versão nova sempre que a página é aberta e,
-      // enquanto o app fica aberto, também a cada 1h — assim que encontra
-      // uma versão nova, atualiza e recarrega sozinho (registerType acima).
+      // enquanto o app fica aberto, também a cada 1h. Ao encontrar, mostra o
+      // aviso de atualização (registerType acima).
       periodicSyncForUpdates: 3600,
     },
     devOptions: {
       enabled: false,
+    },
+  },
+
+  // Versão exibida no menu do placar (commit e data do build). Na Vercel,
+  // VERCEL_GIT_COMMIT_SHA está disponível durante o build.
+  runtimeConfig: {
+    public: {
+      appVersion: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || 'dev',
+      buildTime: new Date().toISOString(),
     },
   },
 
