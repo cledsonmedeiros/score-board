@@ -47,7 +47,19 @@ function draw(
   strategy: DrawStrategy = 'balanced',
   rules: PairRule[] = [],
 ) {
-  return new TeamDrawer(players, numberOfTeams, rules).draw(strategy)
+  return new TeamDrawer(players, numberOfTeams, rules).draw(strategy).teams
+}
+
+function drawWithBench(
+  players: Player[],
+  numberOfTeams: number,
+  playersPerTeam: number,
+  strategy: DrawStrategy = 'balanced',
+  rules: PairRule[] = [],
+) {
+  return new TeamDrawer(players, numberOfTeams, rules, playersPerTeam).draw(
+    strategy,
+  )
 }
 
 const totalWeight = (members: Player[]) =>
@@ -517,6 +529,111 @@ describe('TeamDrawer', () => {
       expect(() => new TeamDrawer([a!, b!, c!, d!], 2, rules)).toThrow(
         'Há regras contraditórias',
       )
+    })
+  })
+
+  describe('jogadores por equipe com banco ("de fora")', () => {
+    it('lança erro quando faltam jogadores para as equipes pedidas', () => {
+      const players = Array.from({ length: 10 }, () => makePlayer(5))
+      expect(() => new TeamDrawer(players, 3, [], 4)).toThrow(
+        '3 equipes de 4 precisam de 12 jogadores, mas há 10 habilitados.',
+      )
+    })
+
+    it.each([0, 1.5])('lança erro com %s jogadores por equipe', (size) => {
+      const players = Array.from({ length: 10 }, () => makePlayer(5))
+      expect(() => new TeamDrawer(players, 2, [], size)).toThrow(
+        'A quantidade de jogadores por equipe deve ser um número inteiro maior que 0',
+      )
+    })
+
+    it.each<DrawStrategy>(['balanced', 'random'])(
+      '10 jogadores, 2 equipes de 4: deixa 2 de fora (%s)',
+      (strategy) => {
+        for (let run = 0; run < RUNS; run++) {
+          const players = Array.from({ length: 10 }, (_, i) =>
+            makePlayer(1 + (i % 10), i % 3 === 0 ? 'F' : 'M'),
+          )
+          const { teams, bench } = drawWithBench(players, 2, 4, strategy)
+
+          expect(teams.map((team) => team.members.length)).toEqual([4, 4])
+          expect(bench).toHaveLength(2)
+          const ids = [...teams.flatMap((t) => t.members), ...bench].map(
+            (p) => p.id,
+          )
+          expect(new Set(ids).size).toBe(10)
+        }
+      },
+    )
+
+    it('sem sobra, o banco fica vazio', () => {
+      const players = Array.from({ length: 8 }, () => makePlayer(5))
+      const { teams, bench } = drawWithBench(players, 2, 4)
+      expect(teams.map((team) => team.members.length)).toEqual([4, 4])
+      expect(bench).toEqual([])
+    })
+
+    it('3 cabeças de chave em 2 equipes: 1 por equipe e 1 de fora', () => {
+      for (let run = 0; run < RUNS; run++) {
+        const seeds = Array.from({ length: 3 }, () => seed(makePlayer(9)))
+        const others = Array.from({ length: 7 }, () => makePlayer(5))
+        const { teams, bench } = drawWithBench([...seeds, ...others], 2, 4)
+
+        expect(teams.map((t) => t.members.filter((m) => m.seed).length)).toEqual(
+          [1, 1],
+        )
+        expect(bench.filter((p) => p.seed)).toHaveLength(1)
+      }
+    })
+
+    it('equilibra a força só entre as equipes que jogam', () => {
+      for (let run = 0; run < RUNS; run++) {
+        const players = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((w) =>
+          makePlayer(w),
+        )
+        const { teams } = drawWithBench(players, 2, 4)
+        expect(weightSpread(teams)).toBeLessThanOrEqual(1.5)
+      }
+    })
+
+    it('"deve jogar junto" pode ser separado pelo banco, mas quem joga fica junto', () => {
+      for (let run = 0; run < RUNS; run++) {
+        const [a, b, c, d, e] = Array.from({ length: 5 }, () => makePlayer(5))
+        const rules = [rule(a!, b!, 'must'), rule(b!, c!, 'must')]
+        // Equipes de 2: o trio não cabe inteiro, então um deles fica de fora.
+        const { teams, bench } = drawWithBench(
+          [a!, b!, c!, d!, e!],
+          2,
+          2,
+          'balanced',
+          rules,
+        )
+        const groupIds = new Set([a!.id, b!.id, c!.id])
+
+        expect(bench).toHaveLength(1)
+        expect(groupIds.has(bench[0]!.id)).toBe(true)
+        const teamsWithGroup = teams.filter((t) =>
+          t.members.some((m) => groupIds.has(m.id)),
+        )
+        expect(teamsWithGroup).toHaveLength(1)
+      }
+    })
+
+    it('"não pode jogar junto" não impede os dois de ficarem de fora', () => {
+      const [a, b, c, d] = Array.from({ length: 4 }, () => makePlayer(5))
+      const extras = [makePlayer(5), makePlayer(5)]
+      const rules = [rule(a!, b!), rule(a!, c!), rule(a!, d!), rule(b!, c!), rule(b!, d!), rule(c!, d!)]
+      // 4 jogadores que não podem jogar entre si, 2 equipes de 2: a única
+      // saída é 2 deles irem para o banco juntos.
+      const { teams, bench } = drawWithBench(
+        [a!, b!, c!, d!, ...extras],
+        2,
+        2,
+        'balanced',
+        rules,
+      )
+      expect(teams.map((t) => t.members.length)).toEqual([2, 2])
+      expect(bench).toHaveLength(2)
     })
   })
 })

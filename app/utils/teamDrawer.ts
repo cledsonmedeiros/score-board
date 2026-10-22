@@ -8,6 +8,12 @@ import { POSITIONS, type Position } from './playerProfile'
 
 export type DrawStrategy = 'balanced' | 'random'
 
+/** Resultado do sorteio: as equipes que jogam e quem ficou de fora (pode ser vazio). */
+export interface DrawResult {
+  teams: Team[]
+  bench: Player[]
+}
+
 /**
  * Bloco indivisível de jogadores distribuído no sorteio: um jogador sozinho
  * ou um grupo de jogadores ligados por regras de "deve jogar junto".
@@ -91,6 +97,15 @@ const MAX_IMPROVEMENT_ROUNDS = 500
  * - "deve jogar junto": o grupo (inclusive por transitividade) fica inteiro
  *   em uma única equipe.
  *
+ * Com `playersPerTeam` informado e `numberOfTeams × playersPerTeam` menor
+ * que o total de jogadores, cada equipe tem exatamente `playersPerTeam`
+ * jogadores e quem sobra fica "de fora" (banco). O banco entra na busca como
+ * um grupo a mais, mas os critérios de equilíbrio só olham as equipes que
+ * jogam; assim, quem fica de fora é quem deixa as equipes mais equilibradas
+ * (ex.: 3 cabeças de chave em 2 equipes → 1 cabeça fica de fora). As regras de
+ * pares só valem entre quem joga: um integrante de "deve jogar junto" pode
+ * ficar de fora sozinho, e quem "não pode jogar junto" pode dividir o banco.
+ *
  * Critérios de equilíbrio (otimizados, em ordem de prioridade):
  * 1. cabeças de chave — espalhados entre as equipes;
  * 2. mulheres — espalhadas entre as equipes (diferença máxima de 1);
@@ -114,10 +129,22 @@ export class TeamDrawer {
   private readonly numberOfTeams: number
   private readonly minTeamSize: number
   private readonly maxTeamSize: number
+  /** Quantos jogadores ficam de fora (0 = todos jogam). */
+  private readonly benchSize: number
+  /** Índice do grupo "de fora" em `teamOf`, ou -1 quando não há banco. */
+  private readonly benchSlot: number
+  /** Equipes + banco (quando houver). */
+  private readonly slotCount: number
   private readonly units: PlayerUnit[]
   /** conflicts[a][b] = true quando algum jogador do bloco `a` não pode jogar com algum do bloco `b`. */
   private readonly conflicts: boolean[][]
   private readonly hasCannotRules: boolean
+  /**
+   * Com banco, os blocos são jogadores individuais e "deve jogar junto" vira
+   * restrição: mustPartners[u] = blocos que, se jogarem, ficam na equipe de `u`.
+   * Sem banco, os grupos já são blocos indivisíveis e a lista fica vazia.
+   */
+  private readonly mustPartners: number[][]
   /** Força extra que uma equipe recebe por função descoberta (metade de um jogador médio). */
   private readonly uncoveredRoleCompensation: number
 
@@ -125,6 +152,7 @@ export class TeamDrawer {
     players: Player[],
     numberOfTeams: number,
     pairRules: PairRule[] = [],
+    playersPerTeam?: number,
   ) {
     if (players.length === 0) {
       throw new Error('Nenhum jogador habilitado para sorteio')
@@ -140,6 +168,19 @@ export class TeamDrawer {
       )
     }
 
+    if (playersPerTeam !== undefined) {
+      if (!Number.isInteger(playersPerTeam) || playersPerTeam < 1) {
+        throw new Error(
+          'A quantidade de jogadores por equipe deve ser um número inteiro maior que 0',
+        )
+      }
+      if (playersPerTeam * numberOfTeams > players.length) {
+        throw new Error(
+          `${numberOfTeams} equipes de ${playersPerTeam} precisam de ${playersPerTeam * numberOfTeams} jogadores, mas há ${players.length} habilitados.`,
+        )
+      }
+    }
+
     // Só valem as regras em que os dois jogadores participam deste sorteio.
     const playerIds = new Set(players.map((player) => player.id))
     const activeRules = pairRules.filter(
@@ -152,10 +193,24 @@ export class TeamDrawer {
       )
     }
 
+    const playingCount =
+      playersPerTeam === undefined
+        ? players.length
+        : playersPerTeam * numberOfTeams
+    const hasBench = playingCount < players.length
+
     this.numberOfTeams = numberOfTeams
-    this.minTeamSize = Math.floor(players.length / numberOfTeams)
-    this.maxTeamSize = Math.ceil(players.length / numberOfTeams)
-    this.units = TeamDrawer.buildUnits(players, activeRules)
+    this.minTeamSize = Math.floor(playingCount / numberOfTeams)
+    this.maxTeamSize = Math.ceil(playingCount / numberOfTeams)
+    this.benchSize = players.length - playingCount
+    this.benchSlot = hasBench ? numberOfTeams : -1
+    this.slotCount = numberOfTeams + (hasBench ? 1 : 0)
+    // Com banco, os grupos de "deve jogar junto" podem ser separados (parte
+    // joga, parte fica de fora), então cada jogador vira um bloco próprio.
+    this.units = TeamDrawer.buildUnits(players, hasBench ? [] : activeRules)
+    this.mustPartners = hasBench
+      ? TeamDrawer.buildMustPartners(this.units, activeRules)
+      : this.units.map(() => [])
     this.conflicts = TeamDrawer.buildConflictMatrix(this.units, activeRules)
     this.hasCannotRules = activeRules.some((rule) => rule.type === 'cannot')
     const averageSkill =
@@ -166,9 +221,9 @@ export class TeamDrawer {
   }
 
   /** Sorteia as equipes usando a estratégia informada. Cada chamada gera um novo sorteio. */
-  draw(strategy: DrawStrategy): Team[] {
+  draw(strategy: DrawStrategy): DrawResult {
     if (strategy === 'random') {
-      return this.toTeams(this.search(randomCost, 1).teamOf)
+      return this.toResult(this.search(randomCost, 1).teamOf)
     }
 
     const compensation = this.uncoveredRoleCompensation
@@ -187,7 +242,7 @@ export class TeamDrawer {
     const relaxedCost: CostFunction = (stats) =>
       balancedCost(stats, compensation, allowance)
 
-    return this.toTeams(
+    return this.toResult(
       this.search(relaxedCost, BALANCED_RESTARTS, [strict.teamOf]).teamOf,
     )
   }
@@ -203,9 +258,14 @@ export class TeamDrawer {
     seeds: number[][] = [],
   ): { teamOf: number[]; cost: Cost } {
     let best: { teamOf: number[]; cost: Cost }[] = []
+    // O equilíbrio só considera as equipes que jogam; o banco fica de fora da conta.
+    const evaluate: CostFunction =
+      this.benchSlot === -1
+        ? costOf
+        : (stats) => costOf(withoutLastSlot(stats))
 
     const consider = (teamOf: number[]) => {
-      const cost = this.improve(teamOf, costOf)
+      const cost = this.improve(teamOf, evaluate)
       const comparison = best.length ? compareCost(cost, best[0]!.cost) : -1
       if (comparison < 0) best = [{ teamOf, cost }]
       else if (comparison === 0) best.push({ teamOf, cost })
@@ -266,6 +326,20 @@ export class TeamDrawer {
     return [...unitsByGroup.values()]
   }
 
+  /** Para cada bloco (jogador), os demais blocos do mesmo grupo de "deve jogar junto". */
+  private static buildMustPartners(units: PlayerUnit[], rules: PairRule[]) {
+    const groupOf = createMustGroupResolver(rules)
+    const unitsByGroup = new Map<string, number[]>()
+    const groupIds = units.map((unit, index) => {
+      const groupId = groupOf(unit.members[0]!.id)
+      unitsByGroup.set(groupId, [...(unitsByGroup.get(groupId) ?? []), index])
+      return groupId
+    })
+    return groupIds.map((groupId, index) =>
+      unitsByGroup.get(groupId)!.filter((other) => other !== index),
+    )
+  }
+
   private static buildConflictMatrix(units: PlayerUnit[], rules: PairRule[]) {
     const unitIndexByPlayer = new Map<string, number>()
     units.forEach((unit, index) => {
@@ -308,13 +382,18 @@ export class TeamDrawer {
       (a, b) => this.units[b]!.size - this.units[a]!.size,
     )
     const teamOf = this.units.map(() => -1)
-    const sizes = Array.from({ length: this.numberOfTeams }, () => 0)
-    // Quantas equipes podem ter o tamanho máximo (quando os tamanhos não são todos iguais).
+    const sizes = Array.from({ length: this.slotCount }, () => 0)
+    // Quantas equipes podem ter o tamanho máximo (quando os tamanhos não são
+    // todos iguais; com banco eles são sempre iguais).
     const largeTeamsAllowed =
       this.maxTeamSize > this.minTeamSize
         ? this.units.reduce((sum, unit) => sum + unit.size, 0) -
           this.numberOfTeams * this.minTeamSize
         : this.numberOfTeams
+    const largeTeamsCount = () =>
+      sizes.filter(
+        (size, slot) => slot !== this.benchSlot && size > this.minTeamSize,
+      ).length
 
     const place = (position: number): boolean => {
       const unitIndex = order[position]
@@ -323,16 +402,17 @@ export class TeamDrawer {
 
       for (const team of shuffle(sizes.map((_, index) => index))) {
         const newSize = sizes[team]! + unit.size
-        if (newSize > this.maxTeamSize) continue
+        if (newSize > this.maxSizeOf(team)) continue
         if (
+          team !== this.benchSlot &&
           newSize > this.minTeamSize &&
           sizes[team]! <= this.minTeamSize &&
-          sizes.filter((size) => size > this.minTeamSize).length >=
-            largeTeamsAllowed
+          largeTeamsCount() >= largeTeamsAllowed
         ) {
           continue
         }
         if (this.hasConflictInTeam(unitIndex, team, teamOf, -1)) continue
+        if (this.breaksMustRule(unitIndex, team, teamOf, -1)) continue
 
         teamOf[unitIndex] = team
         sizes[team] = newSize
@@ -346,14 +426,22 @@ export class TeamDrawer {
     return place(0) ? teamOf : null
   }
 
-  /** Indica se o bloco teria conflito com alguém da equipe (ignorando o bloco `except`). */
+  private minSizeOf(slot: number) {
+    return slot === this.benchSlot ? this.benchSize : this.minTeamSize
+  }
+
+  private maxSizeOf(slot: number) {
+    return slot === this.benchSlot ? this.benchSize : this.maxTeamSize
+  }
+
+  /** Indica se o bloco teria conflito com alguém da equipe (ignorando o bloco `except`). No banco não há conflito. */
   private hasConflictInTeam(
     unitIndex: number,
     team: number,
     teamOf: number[],
     except: number,
   ) {
-    if (!this.hasCannotRules) return false
+    if (!this.hasCannotRules || team === this.benchSlot) return false
 
     const row = this.conflicts[unitIndex]!
     return teamOf.some(
@@ -363,6 +451,30 @@ export class TeamDrawer {
         other !== except &&
         row[other],
     )
+  }
+
+  /**
+   * Indica se colocar o bloco em `team` separaria um grupo de "deve jogar
+   * junto": algum parceiro que já joga (fora do banco) está em outra equipe.
+   * O bloco `except` é ignorado (ele está trocando de lugar com este).
+   */
+  private breaksMustRule(
+    unitIndex: number,
+    team: number,
+    teamOf: number[],
+    except: number,
+  ) {
+    if (team === this.benchSlot) return false
+
+    return this.mustPartners[unitIndex]!.some((partner) => {
+      if (partner === except) return false
+      const partnerTeam = teamOf[partner]!
+      return (
+        partnerTeam !== -1 &&
+        partnerTeam !== this.benchSlot &&
+        partnerTeam !== team
+      )
+    })
   }
 
   // ---------------------------------------------------------------------------
@@ -405,7 +517,7 @@ export class TeamDrawer {
   ) {
     const fromTeam = teamOf[u]!
 
-    for (let toTeam = 0; toTeam < this.numberOfTeams; toTeam++) {
+    for (let toTeam = 0; toTeam < this.slotCount; toTeam++) {
       if (toTeam === fromTeam) continue
 
       // `v = -1` representa mover o bloco `u` sem troca.
@@ -436,12 +548,18 @@ export class TeamDrawer {
 
     // Com a soma fixa, manter todas as equipes entre o mínimo e o máximo
     // preserva automaticamente a quantidade de equipes de cada tamanho.
-    const withinBounds = (size: number) =>
-      size >= this.minTeamSize && size <= this.maxTeamSize
-    if (!withinBounds(newFromSize) || !withinBounds(newToSize)) return false
+    const withinBounds = (slot: number, size: number) =>
+      size >= this.minSizeOf(slot) && size <= this.maxSizeOf(slot)
+    if (!withinBounds(fromTeam, newFromSize) || !withinBounds(toTeam, newToSize)) {
+      return false
+    }
 
     if (this.hasConflictInTeam(u, toTeam, teamOf, v)) return false
     if (v !== -1 && this.hasConflictInTeam(v, fromTeam, teamOf, u)) return false
+    // Parceiros de "deve jogar junto" nunca estão em equipes diferentes num
+    // estado válido, então `u` e `v` não podem ser parceiros que jogam.
+    if (this.breaksMustRule(u, toTeam, teamOf, v)) return false
+    if (v !== -1 && this.breaksMustRule(v, fromTeam, teamOf, u)) return false
     return true
   }
 
@@ -490,7 +608,7 @@ export class TeamDrawer {
   }
 
   private computeStats(teamOf: number[]): TeamStats {
-    const emptyRow = () => Array.from({ length: this.numberOfTeams }, () => 0)
+    const emptyRow = () => Array.from({ length: this.slotCount }, () => 0)
     const stats: TeamStats = {
       sizes: emptyRow(),
       weights: emptyRow(),
@@ -509,7 +627,7 @@ export class TeamDrawer {
   // Custos
   // ---------------------------------------------------------------------------
 
-  private toTeams(teamOf: number[]): Team[] {
+  private toResult(teamOf: number[]): DrawResult {
     const teams: Team[] = Array.from(
       { length: this.numberOfTeams },
       (_, i) => ({
@@ -518,16 +636,17 @@ export class TeamDrawer {
         members: [],
       }),
     )
+    const bench: Player[] = []
 
     teamOf.forEach((team, unitIndex) => {
-      teams[team]!.members.push(
-        ...this.units[unitIndex]!.members.map((player) => ({
-          ...player,
-          positions: { ...player.positions },
-        })),
-      )
+      const members = this.units[unitIndex]!.members.map((player) => ({
+        ...player,
+        positions: { ...player.positions },
+      }))
+      if (team === this.benchSlot) bench.push(...members)
+      else teams[team]!.members.push(...members)
     })
-    return teams
+    return { teams, bench }
   }
 }
 
@@ -559,6 +678,19 @@ function balancedCost(
     positionSpread(stats),
     genderSpread(stats),
   ]
+}
+
+/** Remove o último grupo (o banco) de todos os agregados. */
+function withoutLastSlot(stats: TeamStats): TeamStats {
+  const trim = (row: number[]) => row.slice(0, -1)
+  return {
+    sizes: trim(stats.sizes),
+    weights: trim(stats.weights),
+    females: trim(stats.females),
+    seeds: trim(stats.seeds),
+    positions: stats.positions.map(trim),
+    roleMasks: stats.roleMasks.map(trim),
+  }
 }
 
 /** Evita que ruído de ponto flutuante seja tratado como melhoria. */

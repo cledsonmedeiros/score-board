@@ -671,13 +671,23 @@ export const useScoreboardStore = defineStore('scoreboard', {
     },
 
     // Teams
-    drawTeams(numberOfTeams: number, strategy: DrawStrategy = 'balanced') {
+    /**
+     * Sorteia `numberOfTeams` equipes. Com `playersPerTeam`, cada equipe tem
+     * exatamente esse tamanho e quem sobra volta em `bench` (fica de fora).
+     */
+    drawTeams(
+      numberOfTeams: number,
+      strategy: DrawStrategy = 'balanced',
+      playersPerTeam?: number,
+    ) {
       const drawer = new TeamDrawer(
         this.enabledPlayers,
         numberOfTeams,
         this.pairRules,
+        playersPerTeam,
       )
-      this.allTeams = drawer.draw(strategy)
+      const { teams, bench } = drawer.draw(strategy)
+      this.allTeams = teams
 
       // Atualizar times red e blue com os primeiros da lista
       if (this.allTeams[0]) this.teams.red = { ...this.allTeams[0] }
@@ -685,7 +695,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
 
       this.saveTeams()
       this.saveAllTeams()
-      return this.allTeams
+      return { teams: this.allTeams, bench }
     },
 
     saveManualTeams(teams: Team[]) {

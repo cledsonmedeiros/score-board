@@ -131,6 +131,29 @@
           </div>
         </div>
 
+        <!-- Quem ficou de fora -->
+        <div
+          v-if="previewBench.length > 0"
+          class="mb-4 rounded-lg border-2 border-dashed border-gray-300
+            bg-gray-50 p-3"
+          data-testid="draw-bench"
+        >
+          <h3 class="mb-1 text-base font-bold text-gray-700">
+            🪑 De fora ({{ previewBench.length }})
+          </h3>
+          <p class="mb-2 text-xs text-gray-500">
+            Entram depois no lugar de jogadores da equipe que perder.
+          </p>
+          <div class="grid grid-cols-2 gap-2 md:grid-cols-4">
+            <PlayerBadge
+              v-for="player in previewBench"
+              :key="player.id"
+              :player="player"
+              layout="vertical"
+            />
+          </div>
+        </div>
+
         <!-- Botões de Ação do Preview -->
         <div class="flex flex-col gap-2">
           <div class="flex gap-2">
@@ -193,9 +216,38 @@
             />
             <p class="mt-1 text-xs text-gray-500">
               Mínimo: {{ MIN_TEAMS }} | Máximo: {{ maxTeams }}
-              <span v-if="teamSizeLabel" class="font-semibold text-blue-600">
-                | {{ teamSizeLabel }}
-              </span>
+            </p>
+          </div>
+
+          <!-- Jogadores por equipe (opcional) -->
+          <div>
+            <label
+              for="players-per-team"
+              class="mb-2 block text-sm font-medium text-gray-700"
+              >Jogadores por Equipe
+              <span class="font-normal text-gray-500">(opcional)</span></label
+            >
+            <input
+              id="players-per-team"
+              v-model.number="playersPerTeam"
+              type="number"
+              min="1"
+              :max="maxPlayersPerTeam"
+              placeholder="Todos jogam"
+              data-testid="players-per-team"
+              class="w-full rounded-lg border border-gray-300 px-4 py-2
+                focus:border-blue-500 focus:outline-none focus:ring-2
+                focus:ring-blue-500"
+            />
+            <p class="mt-1 text-xs text-gray-500">
+              Em branco, todos jogam. Preenchido, quem sobrar fica de fora.
+            </p>
+            <p
+              v-if="teamSizeLabel"
+              class="mt-1 text-xs font-semibold"
+              :class="isValidPlayersPerTeam ? 'text-blue-600' : 'text-red-600'"
+            >
+              {{ teamSizeLabel }}
             </p>
           </div>
 
@@ -383,7 +435,7 @@
           </button>
           <button
             @click="handleDraw"
-            :disabled="!isValidNumberOfTeams"
+            :disabled="!isValidNumberOfTeams || !isValidPlayersPerTeam"
             class="flex-1 rounded-lg bg-blue-600 px-6 py-3 font-semibold
               text-white transition-colors hover:bg-blue-700
               disabled:cursor-not-allowed disabled:opacity-50"
@@ -648,6 +700,9 @@ const numberOfTeams = ref(
 )
 const drawType = ref<'balanced' | 'random'>('balanced')
 const previewTeams = ref<Team[] | null>(null)
+const previewBench = ref<Player[]>([])
+/** Vazio = todos jogam (tamanhos diferem em no máximo 1). */
+const playersPerTeam = ref<number | ''>('')
 const showPreview = ref(false)
 const constraintPlayerAId = ref('')
 const constraintPlayerBId = ref('')
@@ -670,21 +725,52 @@ const isValidNumberOfTeams = computed(
     numberOfTeams.value <= store.enabledPlayers.length,
 )
 
-/** Ex.: "2 equipes de 6 e 1 de 5 jogadores". */
+const plural = (count: number, singular: string, pluralForm: string) =>
+  count === 1 ? singular : pluralForm
+
+/** Tamanho fixo informado, ou `undefined` quando todos jogam. */
+const fixedTeamSize = computed(() =>
+  playersPerTeam.value === '' ? undefined : playersPerTeam.value,
+)
+
+const maxPlayersPerTeam = computed(() =>
+  isValidNumberOfTeams.value
+    ? Math.floor(store.enabledPlayers.length / numberOfTeams.value)
+    : store.enabledPlayers.length,
+)
+
+const isValidPlayersPerTeam = computed(() => {
+  const size = fixedTeamSize.value
+  if (size === undefined) return true
+  return Number.isInteger(size) && size >= 1 && size <= maxPlayersPerTeam.value
+})
+
+/** Ex.: "2 equipes de 6 e 1 de 5 jogadores" ou "2 equipes de 4 jogadores · 2 de fora". */
 const teamSizeLabel = computed(() => {
   if (!isValidNumberOfTeams.value) return ''
 
   const total = store.enabledPlayers.length
   const teams = numberOfTeams.value
+  const teamsWord = plural(teams, 'equipe', 'equipes')
+  const size = fixedTeamSize.value
+
+  if (size !== undefined) {
+    if (!isValidPlayersPerTeam.value) {
+      return `Máximo de ${maxPlayersPerTeam.value} por equipe com ${teams} ${teamsWord} e ${total} jogadores`
+    }
+    const bench = total - teams * size
+    const benchLabel = bench > 0 ? ` · ${bench} de fora` : ''
+    return `${teams} ${teamsWord} de ${size} ${plural(size, 'jogador', 'jogadores')}${benchLabel}`
+  }
+
   const smallSize = Math.floor(total / teams)
   const largeCount = total % teams
   const smallCount = teams - largeCount
-  const plural = (count: number) => (count === 1 ? 'equipe' : 'equipes')
 
   if (largeCount === 0) {
-    return `${teams} ${plural(teams)} de ${smallSize} jogadores`
+    return `${teams} ${teamsWord} de ${smallSize} jogadores`
   }
-  return `${largeCount} ${plural(largeCount)} de ${smallSize + 1} e ${smallCount} de ${smallSize} jogadores`
+  return `${largeCount} ${plural(largeCount, 'equipe', 'equipes')} de ${smallSize + 1} e ${smallCount} de ${smallSize} jogadores`
 })
 
 const playersById = computed(() => {
@@ -766,10 +852,20 @@ const handleDraw = () => {
       return
     }
 
-    const drawnTeams = store.drawTeams(numberOfTeams.value, drawType.value)
+    if (!isValidPlayersPerTeam.value) {
+      alert(teamSizeLabel.value)
+      return
+    }
+
+    const { teams, bench } = store.drawTeams(
+      numberOfTeams.value,
+      drawType.value,
+      fixedTeamSize.value,
+    )
 
     // Guardar preview das equipes (cópia profunda)
-    previewTeams.value = JSON.parse(JSON.stringify(drawnTeams))
+    previewTeams.value = JSON.parse(JSON.stringify(teams))
+    previewBench.value = bench
     showPreview.value = true
   } catch (error) {
     console.error('Erro ao sortear equipes:', error)
@@ -826,6 +922,7 @@ const confirmTeams = () => {
 const backToConfig = () => {
   showPreview.value = false
   previewTeams.value = null
+  previewBench.value = []
 }
 
 // Funções do modo manual
