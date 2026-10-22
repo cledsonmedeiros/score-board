@@ -400,15 +400,27 @@ const selectMode = (mode: string | number) => {
 
 // Estados do modo automático
 const MIN_TEAMS = 2
-const DEFAULT_TEAMS = 3
+const DEFAULT_TEAMS = 2
+const DEFAULT_PLAYERS_PER_TEAM = 4
 const numberOfTeams = ref(
   Math.max(MIN_TEAMS, Math.min(DEFAULT_TEAMS, store.enabledPlayers.length)),
 )
 const drawType = ref<'balanced' | 'random'>('balanced')
 const previewTeams = ref<Team[] | null>(null)
 const previewBench = ref<Player[]>([])
-/** Vazio = todos jogam (tamanhos diferem em no máximo 1). */
-const playersPerTeam = ref<number>()
+/**
+ * Vazio = todos jogam (tamanhos diferem em no máximo 1). O padrão é limitado
+ * ao que cabe com os jogadores habilitados, para não abrir já inválido.
+ */
+const playersPerTeam = ref<number | undefined>(
+  Math.max(
+    1,
+    Math.min(
+      DEFAULT_PLAYERS_PER_TEAM,
+      Math.floor(store.enabledPlayers.length / numberOfTeams.value),
+    ),
+  ),
+)
 const showPreview = ref(false)
 const sheetTitle = computed(() => {
   if (showPreview.value) return 'Equipes Sorteadas'
