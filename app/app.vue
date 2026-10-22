@@ -1,6 +1,7 @@
 <template>
   <UApp :locale="pt_br" :toaster="{ position: 'top-center' }">
     <NuxtPage />
+    <PwaUpdateNotifier />
   </UApp>
 </template>
 

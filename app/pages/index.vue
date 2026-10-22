@@ -71,6 +71,8 @@ const showDrawModal = ref(false)
 const showViewModal = ref(false)
 const showSelectorModal = ref(false)
 
+const { versionLabel, forceUpdate } = useAppUpdate()
+
 const menuItems = computed<DropdownMenuItem[][]>(() => {
   const teamActions: DropdownMenuItem[] = []
 
@@ -104,7 +106,20 @@ const menuItems = computed<DropdownMenuItem[][]>(() => {
     },
   ]
 
-  return teamActions.length > 0 ? [teamActions, navigation] : [navigation]
+  const appGroup: DropdownMenuItem[] = [
+    { type: 'label', label: versionLabel },
+    {
+      label: 'Forçar atualização',
+      icon: 'i-heroicons-arrow-down-circle',
+      onSelect: () => forceUpdate(),
+    },
+  ]
+
+  return [
+    ...(teamActions.length > 0 ? [teamActions] : []),
+    navigation,
+    appGroup,
+  ]
 })
 
 // Atualiza a cor do tema dinamicamente baseado na orientação
