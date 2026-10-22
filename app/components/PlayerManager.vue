@@ -3,7 +3,7 @@
     <!-- Container centralizado -->
     <div class="w-full max-w-5xl space-y-6">
       <!-- Formulário de Adição -->
-      <div class="rounded-lg bg-white p-3 shadow md:p-4">
+      <div class="rounded-lg bg-white p-3 shadow-sm md:p-4">
         <form
           @submit.prevent="handleAddPlayer"
           class="flex flex-col gap-2 md:flex-row md:items-end md:gap-3"
@@ -17,7 +17,7 @@
               type="text"
               placeholder="Nome do jogador"
               class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
-                focus:border-blue-500 focus:outline-none focus:ring-2
+                focus:border-blue-500 focus:outline-hidden focus:ring-2
                 focus:ring-blue-500"
               required
             />
@@ -68,7 +68,7 @@
       </div>
 
       <!-- Lista de Jogadores -->
-      <div class="flex flex-col overflow-hidden rounded-lg bg-white shadow">
+      <div class="flex flex-col overflow-hidden rounded-lg bg-white shadow-sm">
         <div class="flex items-center justify-between border-b p-4">
           <h2 class="text-lg font-semibold text-gray-800">
             {{ filteredPlayers.length }} Jogadores
@@ -143,7 +143,7 @@
                   @keyup.esc="cancelEdit"
                   type="text"
                   class="w-full rounded border border-blue-300 px-2 py-1
-                    focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 />
                 <div v-else class="flex items-center gap-2">
                   <span

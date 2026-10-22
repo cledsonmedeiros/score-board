@@ -43,7 +43,7 @@
           v-if="selected"
           @click="selected = null"
           class="shrink-0 rounded-full bg-white px-2 py-1 font-semibold
-            text-indigo-700 shadow-sm hover:bg-indigo-100"
+            text-indigo-700 shadow-xs hover:bg-indigo-100"
         >
           Cancelar
         </button>

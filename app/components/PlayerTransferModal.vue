@@ -27,7 +27,7 @@
           :class="[
             'rounded-md px-3 py-2 text-sm font-semibold transition-colors',
             mode === 'export'
-              ? 'bg-white text-blue-700 shadow-sm'
+              ? 'bg-white text-blue-700 shadow-xs'
               : 'text-gray-600 hover:text-gray-800',
           ]"
         >
@@ -38,7 +38,7 @@
           :class="[
             'rounded-md px-3 py-2 text-sm font-semibold transition-colors',
             mode === 'import'
-              ? 'bg-white text-blue-700 shadow-sm'
+              ? 'bg-white text-blue-700 shadow-xs'
               : 'text-gray-600 hover:text-gray-800',
           ]"
         >
@@ -60,7 +60,7 @@
             readonly
             rows="4"
             class="w-full resize-none rounded-lg border border-gray-300 bg-white
-              px-3 py-2 text-xs focus:outline-none"
+              px-3 py-2 text-xs focus:outline-hidden"
           />
           <button
             @click="handleCopyBase64"
@@ -104,7 +104,7 @@
             rows="4"
             placeholder="Cole aqui o conteúdo Base64"
             class="w-full resize-none rounded-lg border border-gray-300 bg-white
-              px-3 py-2 text-xs focus:border-blue-500 focus:outline-none
+              px-3 py-2 text-xs focus:border-blue-500 focus:outline-hidden
               focus:ring-2 focus:ring-blue-500"
           />
           <button
@@ -133,7 +133,7 @@
 Maria
 Pedro"
             class="w-full resize-none rounded-lg border border-gray-300 bg-white
-              px-3 py-2 text-sm focus:border-blue-500 focus:outline-none
+              px-3 py-2 text-sm focus:border-blue-500 focus:outline-hidden
               focus:ring-2 focus:ring-blue-500"
           />
           <button

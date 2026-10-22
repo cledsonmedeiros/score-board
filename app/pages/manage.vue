@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-dvh flex-col">
     <!-- Header com navegação -->
-    <header class="border-b bg-white shadow-sm">
+    <header class="border-b bg-white shadow-xs">
       <div class="flex flex-col gap-3 p-3 md:p-4">
         <div class="flex items-center justify-between">
           <h1 class="text-lg font-bold text-gray-800 md:text-xl">
@@ -12,7 +12,7 @@
               @click="showTransferModal = true"
               class="flex items-center gap-1.5 rounded-lg border-2
                 border-indigo-300 bg-white px-3 py-2 text-sm font-semibold
-                text-indigo-700 shadow-sm transition-all hover:bg-indigo-50
+                text-indigo-700 shadow-xs transition-all hover:bg-indigo-50
                 active:scale-95 active:bg-indigo-100"
               title="Exportar ou importar jogadores"
             >
@@ -23,7 +23,7 @@
               @click="handleClearAll"
               class="flex items-center gap-1.5 rounded-lg border-2
                 border-red-300 bg-white px-3 py-2 text-sm font-semibold
-                text-red-600 shadow-sm transition-all hover:bg-red-50
+                text-red-600 shadow-xs transition-all hover:bg-red-50
                 active:scale-95 active:bg-red-100"
               title="Limpar todos os dados"
             >
@@ -33,7 +33,7 @@
             <NuxtLink
               to="/"
               class="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2
-                text-sm font-semibold text-white shadow-sm transition-all
+                text-sm font-semibold text-white shadow-xs transition-all
                 hover:bg-blue-700 active:scale-95 active:bg-blue-800 md:px-4"
             >
               <Icon name="heroicons:chart-bar-square" class="h-4 w-4" />
@@ -49,7 +49,7 @@
           @click="showDrawModal = true"
           class="flex w-full items-center justify-center gap-2 rounded-lg
             bg-green-600 px-4 py-3 text-sm font-semibold text-white
-            shadow-sm transition-colors hover:bg-green-700 active:bg-green-800"
+            shadow-xs transition-colors hover:bg-green-700 active:bg-green-800"
         >
           <Icon name="heroicons:user-group-solid" class="h-5 w-5" />
           <span>Sortear Equipes ({{ store.enabledPlayers.length }} jogadores)</span>

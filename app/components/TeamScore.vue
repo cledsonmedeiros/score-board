@@ -37,7 +37,7 @@
         <div
           v-for="member in team.members"
           :key="member.id"
-          class="rounded-full bg-white/20 px-2 py-0.5 backdrop-blur-sm sm:px-3
+          class="rounded-full bg-white/20 px-2 py-0.5 backdrop-blur-xs sm:px-3
             sm:py-1 md:px-4 md:py-1.5"
         >
           <span

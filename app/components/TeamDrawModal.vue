@@ -211,7 +211,7 @@
               :min="MIN_TEAMS"
               :max="maxTeams"
               class="w-full rounded-lg border border-gray-300 px-4 py-2
-                focus:border-blue-500 focus:outline-none focus:ring-2
+                focus:border-blue-500 focus:outline-hidden focus:ring-2
                 focus:ring-blue-500"
             />
             <p class="mt-1 text-xs text-gray-500">
@@ -236,7 +236,7 @@
               placeholder="Todos jogam"
               data-testid="players-per-team"
               class="w-full rounded-lg border border-gray-300 px-4 py-2
-                focus:border-blue-500 focus:outline-none focus:ring-2
+                focus:border-blue-500 focus:outline-hidden focus:ring-2
                 focus:ring-blue-500"
             />
             <p class="mt-1 text-xs text-gray-500">
@@ -322,7 +322,7 @@
               <select
                 v-model="constraintPlayerAId"
                 class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
-                  focus:border-blue-500 focus:outline-none focus:ring-2
+                  focus:border-blue-500 focus:outline-hidden focus:ring-2
                   focus:ring-blue-500"
               >
                 <option value="">Jogador A</option>
@@ -339,7 +339,7 @@
                 v-model="constraintType"
                 aria-label="Tipo de regra"
                 class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
-                  focus:border-blue-500 focus:outline-none focus:ring-2
+                  focus:border-blue-500 focus:outline-hidden focus:ring-2
                   focus:ring-blue-500"
               >
                 <option value="cannot">{{ PAIR_RULE_LABELS.cannot }}</option>
@@ -349,7 +349,7 @@
               <select
                 v-model="constraintPlayerBId"
                 class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
-                  focus:border-blue-500 focus:outline-none focus:ring-2
+                  focus:border-blue-500 focus:outline-hidden focus:ring-2
                   focus:ring-blue-500"
               >
                 <option value="">Jogador B</option>
@@ -398,7 +398,7 @@
                 </p>
                 <button
                   @click="handleRemovePairRule(rule.id)"
-                  class="rounded p-1 text-red-600 transition-colors hover:bg-red-50"
+                  class="rounded-sm p-1 text-red-600 transition-colors hover:bg-red-50"
                   title="Remover restrição"
                 >
                   <Icon name="heroicons:trash" class="h-4 w-4" />
@@ -453,7 +453,7 @@
           class="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800"
         >
           <div class="flex items-start gap-2">
-            <Icon name="heroicons:pencil-square" class="mt-0.5 h-5 w-5 flex-shrink-0" />
+            <Icon name="heroicons:pencil-square" class="mt-0.5 h-5 w-5 shrink-0" />
             <div>
               <p class="font-semibold">Modo de Edição</p>
               <p class="text-xs">
@@ -531,7 +531,7 @@
                 v-model="team.name"
                 type="text"
                 class="flex-1 rounded border-none bg-transparent text-base
-                  font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  font-bold focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 :class="getTeamTextColor(index)"
                 placeholder="Nome da Equipe"
               />
@@ -624,7 +624,7 @@
     <!-- Modal de Seleção de Equipe -->
     <div
       v-if="showTeamSelectionModal && playerToAssign"
-      class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+      class="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4"
       @click.self="closeTeamSelectionModal"
     >
       <div

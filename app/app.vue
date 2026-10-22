@@ -1,6 +1,6 @@
 <template>
-  <div>
+  <UApp>
     <NuxtPage />
     <AppPrompt />
-  </div>
+  </UApp>
 </template>

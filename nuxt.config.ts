@@ -8,13 +8,13 @@ export default defineNuxtConfig({
       enabled: true,
     },
   },
-  modules: [
-    '@nuxtjs/tailwindcss',
-    '@nuxt/fonts',
-    '@nuxt/icon',
-    '@pinia/nuxt',
-    '@vite-pwa/nuxt',
-  ],
+  // O Nuxt UI registra @nuxt/icon e @nuxt/fonts sozinho (configuráveis pelas
+  // chaves `icon` e `fonts` abaixo).
+  modules: ['@nuxt/ui', '@pinia/nuxt', '@vite-pwa/nuxt'],
+
+  // Só tema claro por enquanto: o placar vermelho/azul não foi desenhado
+  // para modo escuro.
+  colorMode: false,
 
   // O app é 100% client-side (Pinia + localStorage, sem chamadas de API).
   // Sem SSR: o servidor não tem acesso ao localStorage, então qualquer HTML
