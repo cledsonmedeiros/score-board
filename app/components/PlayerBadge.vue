@@ -2,7 +2,7 @@
   <div
     v-if="layout === 'vertical'"
     class="flex flex-col items-center gap-0.5 rounded-lg bg-white px-2 py-1.5
-      shadow-sm"
+      shadow-xs"
   >
     <span
       class="max-w-full truncate text-center text-xs font-medium text-gray-800"
@@ -67,7 +67,7 @@ const skillTitle = computed(
   () => `Habilidade ${skillLabel.value} de ${SKILL_MAX}`,
 )
 const skillClasses =
-  'rounded bg-yellow-100 px-1 text-[10px] font-bold tabular-nums text-yellow-800'
+  'rounded-sm bg-yellow-100 px-1 text-[10px] font-bold tabular-nums text-yellow-800'
 
 const playerPositions = computed(() =>
   POSITIONS.filter((position) => props.player.positions?.[position]),

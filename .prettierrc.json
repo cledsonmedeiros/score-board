@@ -7,5 +7,6 @@
     "prettier-plugin-classnames",
     "prettier-plugin-merge"
   ],
-  "endingPosition": "absolute"
+  "endingPosition": "absolute",
+  "tailwindStylesheet": "./app/assets/css/main.css"
 }

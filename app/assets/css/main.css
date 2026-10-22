@@ -1,5 +1,22 @@
-:root {
-  font-family: Roboto, sans-serif;
+@import 'tailwindcss';
+@import '@nuxt/ui';
+
+@theme {
+  --font-sans: 'Roboto', sans-serif;
+}
+
+/*
+  Tailwind v4 mudou a cor padrão da borda para `currentcolor`. Mantém o
+  cinza claro do v3 para os elementos que usam só `border` sem cor.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
 }
 
 body,

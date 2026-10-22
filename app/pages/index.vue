@@ -1,100 +1,32 @@
 <template>
-  <div class="flex h-dvh w-screen select-none overflow-hidden">
-    <!-- Botões de Ação -->
-    <div
-      class="absolute right-2 top-2 z-20 flex gap-2 sm:right-4 sm:top-4"
-      :class="isLandscape ? 'flex-row' : 'flex-col gap-3'"
+  <div class="flex h-dvh w-screen overflow-hidden select-none">
+    <!-- Menu de ações (botão flutuante) -->
+    <UDropdownMenu
+      :items="menuItems"
+      :content="{ align: 'end', sideOffset: 8 }"
+      :ui="{ content: 'min-w-56' }"
     >
-      <!-- Botão de Gerenciamento -->
-      <NuxtLink to="/manage">
-        <button
-          :class="[
-            `flex h-10 w-10 cursor-pointer items-center justify-center
-            rounded-full shadow-xl transition-colors`,
-            isLandscape
-              ? 'sm:h-12 sm:w-12 md:h-14 md:w-14'
-              : 'h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16',
-            isLandscape
-              ? 'bg-blue-700 hover:bg-blue-800'
-              : 'bg-red-700 hover:bg-red-800',
-          ]"
-        >
-          <Icon
-            name="heroicons:cog-6-tooth"
-            class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8"
-          />
-        </button>
-      </NuxtLink>
-
-      <!-- Botão de Refazer Sorteio -->
-      <button
-        v-if="store.allTeams.length > 0"
-        @click="showDrawModal = true"
-        :class="[
-          `flex h-10 w-10 cursor-pointer items-center justify-center
-          rounded-full shadow-xl transition-colors`,
-            isLandscape
-              ? 'sm:h-12 sm:w-12 md:h-14 md:w-14'
-              : 'h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16',
+      <UButton
+        icon="i-heroicons-bars-3"
+        aria-label="Abrir menu"
+        title="Menu"
+        :ui="{ leadingIcon: 'size-6 sm:size-7' }"
+        class="absolute top-[max(0.5rem,env(safe-area-inset-top))] right-2 z-20
+          size-12 justify-center rounded-full text-white shadow-xl sm:right-4
+          sm:size-14"
+        :class="
           isLandscape
-            ? 'bg-blue-700 hover:bg-blue-800'
-            : 'bg-red-700 hover:bg-red-800',
-        ]"
-        title="Refazer sorteio de equipes"
-      >
-        <Icon
-          name="heroicons:arrow-path"
-          class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8"
-        />
-      </button>
-
-      <!-- Botão de Ver Equipes -->
-      <button
-        v-if="store.allTeams.length > 0"
-        @click="showViewModal = true"
-        :class="[
-          `flex h-10 w-10 cursor-pointer items-center justify-center
-          rounded-full shadow-xl transition-colors`,
-            isLandscape
-              ? 'sm:h-12 sm:w-12 md:h-14 md:w-14'
-              : 'h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16',
-          isLandscape
-            ? 'bg-blue-700 hover:bg-blue-800'
-            : 'bg-red-700 hover:bg-red-800',
-        ]"
-        title="Ver equipes atuais"
-      >
-        <Icon
-          name="heroicons:eye"
-          class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8"
-        />
-      </button>
-
-      <!-- Botão de Selecionar Equipes -->
-      <button
-        v-if="store.availableTeams.length > 2"
-        @click="showSelectorModal = true"
-        :class="[
-          `flex h-10 w-10 cursor-pointer items-center justify-center
-          rounded-full shadow-xl transition-colors`,
-            isLandscape
-              ? 'sm:h-12 sm:w-12 md:h-14 md:w-14'
-              : 'h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16',
-          isLandscape
-            ? 'bg-blue-700 hover:bg-blue-800'
-            : 'bg-red-700 hover:bg-red-800',
-        ]"
-        title="Selecionar equipes para exibir"
-      >
-        <Icon
-          name="heroicons:arrow-path-rounded-square"
-          class="h-6 w-6 text-white sm:h-7 sm:w-7 md:h-8 md:w-8"
-        />
-      </button>
-    </div>
+            ? 'bg-blue-700 hover:bg-blue-800 active:bg-blue-800'
+            : 'bg-red-700 hover:bg-red-800 active:bg-red-800'
+        "
+      />
+    </UDropdownMenu>
 
     <!-- Container dos Placares -->
-    <div class="flex h-dvh w-full" :class="isLandscape ? 'flex-row' : 'flex-col'">
+    <div
+      class="flex h-dvh w-full"
+      :class="isLandscape ? 'flex-row' : 'flex-col'"
+    >
       <!-- Equipe Vermelha -->
       <TeamScore color="red" />
 
@@ -130,12 +62,50 @@
 </template>
 
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
+
 const store = useScoreboardStore()
 const { isLandscape } = useOrientation()
 
 const showDrawModal = ref(false)
 const showViewModal = ref(false)
 const showSelectorModal = ref(false)
+
+const menuItems = computed<DropdownMenuItem[][]>(() => {
+  const teamActions: DropdownMenuItem[] = []
+
+  if (store.allTeams.length > 0) {
+    teamActions.push({
+      label: 'Ver equipes',
+      icon: 'i-heroicons-eye',
+      onSelect: () => (showViewModal.value = true),
+    })
+  }
+  if (store.availableTeams.length > 2) {
+    teamActions.push({
+      label: 'Escolher equipes do placar',
+      icon: 'i-heroicons-arrow-path-rounded-square',
+      onSelect: () => (showSelectorModal.value = true),
+    })
+  }
+  if (store.allTeams.length > 0) {
+    teamActions.push({
+      label: 'Sortear novamente',
+      icon: 'i-heroicons-arrow-path',
+      onSelect: () => (showDrawModal.value = true),
+    })
+  }
+
+  const navigation: DropdownMenuItem[] = [
+    {
+      label: 'Gerenciar jogadores',
+      icon: 'i-heroicons-cog-6-tooth',
+      to: '/manage',
+    },
+  ]
+
+  return teamActions.length > 0 ? [teamActions, navigation] : [navigation]
+})
 
 // Atualiza a cor do tema dinamicamente baseado na orientação
 watch(

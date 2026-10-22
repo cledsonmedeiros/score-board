@@ -172,7 +172,8 @@ describe('TeamDrawer', () => {
         const players = weights.map((w) => makePlayer(w))
         expect(weightSpread(draw(players, 4))).toBeLessThanOrEqual(0.5 + 1.5)
       }
-    })
+      // 30 sorteios de 24 jogadores: leva ~7-9s em máquina carregada.
+    }, 15_000)
 
     it('compensa a equipe com menos jogadores com jogadores mais fortes', () => {
       // 5 jogadores em 2 equipes (3 x 2). Força total igual (12 x 12) só é

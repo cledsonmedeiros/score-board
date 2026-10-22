@@ -509,6 +509,28 @@ export const useScoreboardStore = defineStore('scoreboard', {
       }
     },
 
+    /**
+     * Recarrega todas as equipes do último sorteio (salvas por `saveAllTeams`).
+     * Sem isso, depois de recarregar a página o placar ficava só com as duas
+     * equipes em jogo e as ações de ver/escolher/sortear equipes sumiam.
+     */
+    loadAllTeams() {
+      if (import.meta.client) {
+        const stored = localStorage.getItem(ALL_TEAMS_STORAGE_KEY)
+        if (!stored) return
+        try {
+          const data = JSON.parse(stored)
+          if (Array.isArray(data)) {
+            this.allTeams = data.map((team: Team) =>
+              this.normalizeStoredTeam(team),
+            )
+          }
+        } catch (e) {
+          console.error('Erro ao carregar o sorteio de equipes:', e)
+        }
+      }
+    },
+
     saveTeams() {
       if (import.meta.client) {
         localStorage.setItem(TEAMS_STORAGE_KEY, JSON.stringify(this.teams))
@@ -821,6 +843,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
       }
       this.loadPlayers()
       this.loadTeams()
+      this.loadAllTeams()
       this.loadConstraints()
     },
   },

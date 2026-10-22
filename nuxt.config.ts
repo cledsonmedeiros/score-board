@@ -8,13 +8,47 @@ export default defineNuxtConfig({
       enabled: true,
     },
   },
-  modules: [
-    '@nuxtjs/tailwindcss',
-    '@nuxt/fonts',
-    '@nuxt/icon',
-    '@pinia/nuxt',
-    '@vite-pwa/nuxt',
-  ],
+  // O Nuxt UI registra @nuxt/icon e @nuxt/fonts sozinho (configuráveis pelas
+  // chaves `icon` e `fonts` abaixo).
+  modules: ['@nuxt/ui', '@pinia/nuxt', '@vite-pwa/nuxt'],
+
+  ui: {
+    // Só tema claro: o placar vermelho/azul não foi desenhado para modo
+    // escuro. Precisa ficar em `ui.colorMode` — sem isso o Nuxt UI registra
+    // o @nuxtjs/color-mode, que segue o tema do sistema (classe `dark`).
+    colorMode: false,
+  },
+
+  // PWA 100% offline: todos os ícones vão no bundle do cliente e nunca são
+  // buscados na API pública do Iconify (que falharia sem internet).
+  icon: {
+    provider: 'none',
+    fallbackToApi: false,
+    clientBundle: {
+      // Ícones usados no código do app (heroicons).
+      scan: { globInclude: ['app/**/*.{vue,ts}'] },
+      // Ícones internos dos componentes do Nuxt UI usados aqui (fechar,
+      // setas do select, +/- do campo numérico, carregando, avisos).
+      icons: [
+        'lucide:x',
+        'lucide:check',
+        'lucide:chevron-down',
+        'lucide:chevron-up',
+        'lucide:chevron-left',
+        'lucide:chevron-right',
+        'lucide:plus',
+        'lucide:minus',
+        'lucide:loader-circle',
+        'lucide:arrow-left',
+        'lucide:arrow-right',
+        'lucide:circle-check',
+        'lucide:circle-x',
+        'lucide:circle-alert',
+        'lucide:triangle-alert',
+        'lucide:info',
+      ],
+    },
+  },
 
   // O app é 100% client-side (Pinia + localStorage, sem chamadas de API).
   // Sem SSR: o servidor não tem acesso ao localStorage, então qualquer HTML

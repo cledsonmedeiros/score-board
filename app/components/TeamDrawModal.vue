@@ -1,651 +1,266 @@
 <template>
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-    @click.self="$emit('close')"
-  >
+  <AppSheet ref="sheet" :title="sheetTitle" size="3xl" @close="$emit('close')">
+    <!-- Modo de Criação -->
+    <UTabs
+      v-if="!showPreview"
+      :items="MODE_ITEMS"
+      :model-value="creationMode"
+      :content="false"
+      class="mb-4"
+      @update:model-value="selectMode"
+    />
+
+    <!-- Aviso se não houver jogadores -->
     <div
-      class="max-h-[90dvh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white
-        p-4 shadow-2xl md:p-6"
-      @click.stop
+      v-if="store.enabledPlayers.length === 0"
+      class="rounded-lg bg-yellow-50 p-4 text-center"
     >
-      <!-- Cabeçalho -->
-      <div class="mb-4 md:mb-6">
-        <div class="mb-3 flex items-center justify-between">
-          <h2 class="text-xl font-bold text-gray-800 md:text-2xl">
-            {{ creationMode === 'auto' ? 'Sortear Equipes' : 'Montar Equipes' }}
-          </h2>
-          <button
-            @click="$emit('close')"
-            class="flex h-8 w-8 items-center justify-center rounded-full
-              text-gray-400 transition-colors hover:bg-gray-100
-              hover:text-gray-600"
-          >
-            <Icon name="heroicons:x-mark" class="h-5 w-5" />
-          </button>
-        </div>
+      <p class="text-yellow-800">
+        Nenhum jogador habilitado para sorteio. Adicione e habilite jogadores
+        primeiro.
+      </p>
+    </div>
 
-        <!-- Modo de Criação -->
-        <div v-if="!showPreview" class="flex gap-2">
-          <button
-            @click="creationMode = 'auto'"
-            class="flex-1 rounded-lg border-2 px-4 py-2 text-sm font-semibold
-              transition-colors"
-            :class="
-              creationMode === 'auto'
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-300 text-gray-600 hover:border-gray-400'
-            "
-          >
-            🎲 Sorteio
-          </button>
-          <button
-            @click="switchToManualMode"
-            class="flex-1 rounded-lg border-2 px-4 py-2 text-sm font-semibold
-              transition-colors"
-            :class="
-              creationMode === 'manual'
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-300 text-gray-600 hover:border-gray-400'
-            "
-          >
-            ✋ Manual
-          </button>
-        </div>
-      </div>
+    <!-- Preview das Equipes Sorteadas -->
+    <div v-else-if="showPreview && previewTeams">
+      <DrawPreview :teams="previewTeams" :bench="previewBench" />
+    </div>
 
-      <!-- Aviso se não houver jogadores -->
-      <div
-        v-if="store.enabledPlayers.length === 0"
-        class="rounded-lg bg-yellow-50 p-4 text-center"
-      >
-        <p class="text-yellow-800">
-          Nenhum jogador habilitado para sorteio. Adicione e habilite jogadores
-          primeiro.
+    <!-- Configuração do Sorteio -->
+    <div v-else-if="creationMode === 'auto'">
+      <!-- Info de jogadores -->
+      <div class="mb-6 rounded-lg bg-blue-50 p-4">
+        <p class="text-sm text-blue-800">
+          <span class="font-semibold">{{ store.enabledPlayers.length }}</span>
+          {{
+            store.enabledPlayers.length === 1
+              ? 'jogador habilitado'
+              : 'jogadores habilitados'
+          }}
+          para sorteio
         </p>
       </div>
 
-      <!-- Preview das Equipes Sorteadas -->
-      <div v-else-if="showPreview && previewTeams">
-        <!-- Lista de Equipes -->
-        <div class="mb-4 grid gap-3 md:grid-cols-2">
-          <div
-            v-for="(team, index) in previewTeams"
-            :key="index"
-            class="flex min-h-40 flex-col rounded-lg border-2 p-3"
-            :class="
-              index === 0
-                ? 'border-red-300 bg-red-50'
-                : index === 1
-                  ? 'border-blue-300 bg-blue-50'
-                  : index === 2
-                    ? 'border-green-300 bg-green-50'
-                    : index === 3
-                      ? 'border-yellow-300 bg-yellow-50'
-                      : 'border-purple-300 bg-purple-50'
-            "
-          >
-            <h3
-              class="mb-2 text-base font-bold"
-              :class="
-                index === 0
-                  ? 'text-red-800'
-                  : index === 1
-                    ? 'text-blue-800'
-                    : index === 2
-                      ? 'text-green-800'
-                      : index === 3
-                        ? 'text-yellow-800'
-                        : 'text-purple-800'
-              "
-            >
-              {{ team.name }}
-            </h3>
-            <div class="mb-2 grid flex-1 grid-cols-2 content-start gap-2">
-              <PlayerBadge
-                v-for="member in team.members"
-                :key="member.id"
-                :player="member"
-                layout="vertical"
-              />
-            </div>
-            <!-- Info da Equipe -->
-            <div
-              class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-200
-                pt-2 text-xs text-gray-600"
-            >
-              <span
-                >👥 {{ team.members.length }}
-                {{ team.members.length === 1 ? 'jogador' : 'jogadores' }}</span
-              >
-              <span>{{ genderSummary(team) }}</span>
-              <span :title="positionSummaryTitle">{{
-                positionSummary(team)
-              }}</span>
-              <span
-                >⚖️
-                {{
-                  team.members.reduce((sum, m) => sum + m.weight, 0).toFixed(1)
-                }}</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <!-- Quem ficou de fora -->
-        <div
-          v-if="previewBench.length > 0"
-          class="mb-4 rounded-lg border-2 border-dashed border-gray-300
-            bg-gray-50 p-3"
-          data-testid="draw-bench"
+      <!-- Configurações -->
+      <div class="mb-6 space-y-4">
+        <!-- Quantidade de equipes -->
+        <UFormField
+          label="Quantidade de Equipes"
+          :help="`Mínimo: ${MIN_TEAMS} | Máximo: ${maxTeams}`"
         >
-          <h3 class="mb-1 text-base font-bold text-gray-700">
-            🪑 De fora ({{ previewBench.length }})
-          </h3>
-          <p class="mb-2 text-xs text-gray-500">
-            Entram depois no lugar de jogadores da equipe que perder.
-          </p>
-          <div class="grid grid-cols-2 gap-2 md:grid-cols-4">
-            <PlayerBadge
-              v-for="player in previewBench"
-              :key="player.id"
-              :player="player"
-              layout="vertical"
-            />
-          </div>
-        </div>
+          <UInputNumber
+            v-model="numberOfTeams"
+            :min="MIN_TEAMS"
+            :max="maxTeams"
+            class="w-full"
+          />
+        </UFormField>
 
-        <!-- Botões de Ação do Preview -->
-        <div class="flex flex-col gap-2">
+        <!-- Jogadores por equipe (opcional) -->
+        <UFormField
+          label="Jogadores por Equipe"
+          hint="opcional"
+          help="Em branco, todos jogam. Preenchido, quem sobrar fica de fora."
+        >
           <div class="flex gap-2">
-            <button
-              @click="redrawTeams"
-              class="flex-1 rounded-lg border border-orange-300 bg-orange-50
-                px-4 py-2.5 font-semibold text-orange-700 transition-colors
-                hover:bg-orange-100"
-            >
-              🔄 Sortear Novamente
-            </button>
-            <button
-              @click="confirmTeams"
-              class="flex-1 rounded-lg bg-green-600 px-4 py-2.5 font-semibold
-                text-white transition-colors hover:bg-green-700"
-            >
-              ✓ Confirmar Equipes
-            </button>
-          </div>
-          <button
-            @click="backToConfig"
-            class="w-full rounded-lg border border-gray-300 px-4 py-2.5
-              font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-          >
-            ← Voltar
-          </button>
-        </div>
-      </div>
-
-      <!-- Configuração do Sorteio -->
-      <div v-else-if="creationMode === 'auto'">
-        <!-- Info de jogadores -->
-        <div class="mb-6 rounded-lg bg-blue-50 p-4">
-          <p class="text-sm text-blue-800">
-            <span class="font-semibold">{{ store.enabledPlayers.length }}</span>
-            {{
-              store.enabledPlayers.length === 1
-                ? 'jogador habilitado'
-                : 'jogadores habilitados'
-            }}
-            para sorteio
-          </p>
-        </div>
-
-        <!-- Configurações -->
-        <div class="mb-6 space-y-4">
-          <!-- Quantidade de equipes -->
-          <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
-              >Quantidade de Equipes</label
-            >
-            <input
-              v-model.number="numberOfTeams"
-              type="number"
-              :min="MIN_TEAMS"
-              :max="maxTeams"
-              class="w-full rounded-lg border border-gray-300 px-4 py-2
-                focus:border-blue-500 focus:outline-none focus:ring-2
-                focus:ring-blue-500"
-            />
-            <p class="mt-1 text-xs text-gray-500">
-              Mínimo: {{ MIN_TEAMS }} | Máximo: {{ maxTeams }}
-            </p>
-          </div>
-
-          <!-- Jogadores por equipe (opcional) -->
-          <div>
-            <label
-              for="players-per-team"
-              class="mb-2 block text-sm font-medium text-gray-700"
-              >Jogadores por Equipe
-              <span class="font-normal text-gray-500">(opcional)</span></label
-            >
-            <input
-              id="players-per-team"
-              v-model.number="playersPerTeam"
-              type="number"
-              min="1"
+            <UInputNumber
+              v-model.optional="playersPerTeam"
+              :min="1"
               :max="maxPlayersPerTeam"
               placeholder="Todos jogam"
               data-testid="players-per-team"
-              class="w-full rounded-lg border border-gray-300 px-4 py-2
-                focus:border-blue-500 focus:outline-none focus:ring-2
-                focus:ring-blue-500"
+              class="flex-1"
             />
-            <p class="mt-1 text-xs text-gray-500">
-              Em branco, todos jogam. Preenchido, quem sobrar fica de fora.
-            </p>
-            <p
-              v-if="teamSizeLabel"
-              class="mt-1 text-xs font-semibold"
-              :class="isValidPlayersPerTeam ? 'text-blue-600' : 'text-red-600'"
-            >
-              {{ teamSizeLabel }}
-            </p>
+            <UButton
+              v-if="playersPerTeam !== undefined"
+              color="neutral"
+              variant="ghost"
+              icon="i-heroicons-x-mark"
+              aria-label="Limpar: todos jogam"
+              @click="playersPerTeam = undefined"
+            />
           </div>
+        </UFormField>
+        <p
+          v-if="teamSizeLabel"
+          class="-mt-2 text-xs font-semibold"
+          :class="isValidPlayersPerTeam ? 'text-primary' : 'text-error'"
+        >
+          {{ teamSizeLabel }}
+        </p>
 
-          <!-- Tipo de sorteio -->
-          <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
-              >Tipo de Sorteio</label
-            >
-            <div class="flex flex-col gap-3 md:flex-row md:gap-4">
-              <label
-                class="flex flex-1 cursor-pointer items-center gap-3 rounded-lg
-                  border-2 p-3 transition-colors md:p-4"
-                :class="
-                  drawType === 'balanced'
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 hover:border-gray-400'
-                "
-              >
-                <input
-                  v-model="drawType"
-                  type="radio"
-                  value="balanced"
-                  class="h-4 w-4 text-blue-600"
-                />
-                <div class="flex-1">
-                  <p class="font-semibold text-gray-800">Balanceado</p>
-                  <p class="text-xs text-gray-600">
-                    Espalha cabeças de chave; equilibra posições, habilidade e
-                    gênero (nessa ordem)
-                  </p>
-                </div>
-              </label>
+        <!-- Tipo de sorteio -->
+        <UFormField label="Tipo de Sorteio">
+          <URadioGroup
+            v-model="drawType"
+            :items="DRAW_TYPE_ITEMS"
+            variant="card"
+            :ui="{ fieldset: 'flex-col gap-3 md:flex-row', item: 'flex-1' }"
+          />
+        </UFormField>
 
-              <label
-                class="flex flex-1 cursor-pointer items-center gap-3 rounded-lg
-                  border-2 p-3 transition-colors md:p-4"
-                :class="
-                  drawType === 'random'
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 hover:border-gray-400'
-                "
-              >
-                <input
-                  v-model="drawType"
-                  type="radio"
-                  value="random"
-                  class="h-4 w-4 text-blue-600"
-                />
-                <div class="flex-1">
-                  <p class="font-semibold text-gray-800">Aleatório</p>
-                  <p class="text-xs text-gray-600">
-                    Ignora habilidade; espalha cabeças de chave e equilibra
-                    posições e gênero
-                  </p>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          <!-- Restrições de Sorteio -->
-          <div class="rounded-lg border border-gray-200 p-4">
-            <div class="mb-3">
-              <h3 class="text-sm font-semibold text-gray-800">
-                Restrições de Jogadores
-              </h3>
-              <p class="text-xs text-gray-600">
-                Defina pares que não podem ou que devem cair na mesma equipe.
-              </p>
-            </div>
-
-            <div class="mb-3 grid gap-2 md:grid-cols-4">
-              <select
-                v-model="constraintPlayerAId"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
-                  focus:border-blue-500 focus:outline-none focus:ring-2
-                  focus:ring-blue-500"
-              >
-                <option value="">Jogador A</option>
-                <option
-                  v-for="player in store.enabledPlayers"
-                  :key="`constraint-a-${player.id}`"
-                  :value="player.id"
-                >
-                  {{ player.name }}
-                </option>
-              </select>
-
-              <select
-                v-model="constraintType"
-                aria-label="Tipo de regra"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
-                  focus:border-blue-500 focus:outline-none focus:ring-2
-                  focus:ring-blue-500"
-              >
-                <option value="cannot">{{ PAIR_RULE_LABELS.cannot }}</option>
-                <option value="must">{{ PAIR_RULE_LABELS.must }}</option>
-              </select>
-
-              <select
-                v-model="constraintPlayerBId"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm
-                  focus:border-blue-500 focus:outline-none focus:ring-2
-                  focus:ring-blue-500"
-              >
-                <option value="">Jogador B</option>
-                <option
-                  v-for="player in availableConstraintPlayerB"
-                  :key="`constraint-b-${player.id}`"
-                  :value="player.id"
-                >
-                  {{ player.name }}
-                </option>
-              </select>
-
-              <button
-                @click="handleAddPairRule"
-                class="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2
-                  text-sm font-semibold text-blue-700 transition-colors
-                  hover:bg-blue-100"
-              >
-                + Adicionar Regra
-              </button>
-            </div>
-
-            <div
-              v-if="pairRulesWithPlayers.length === 0"
-              class="rounded-lg bg-gray-50 p-3 text-xs text-gray-600"
-            >
-              Nenhuma restrição cadastrada.
-            </div>
-
-            <div v-else class="max-h-40 space-y-2 overflow-y-auto">
-              <div
-                v-for="rule in pairRulesWithPlayers"
-                :key="rule.id"
-                class="flex items-center justify-between gap-2 rounded-lg border
-                  border-gray-200 bg-white p-2"
-              >
-                <p class="text-sm text-gray-700">
-                  {{ rule.playerAName }}
-                  <span
-                    class="font-semibold"
-                    :class="rule.type === 'must' ? 'text-green-700' : 'text-red-700'"
-                  >
-                    {{ PAIR_RULE_LABELS[rule.type] }}
-                  </span>
-                  {{ rule.playerBName }}
-                </p>
-                <button
-                  @click="handleRemovePairRule(rule.id)"
-                  class="rounded p-1 text-red-600 transition-colors hover:bg-red-50"
-                  title="Remover restrição"
-                >
-                  <Icon name="heroicons:trash" class="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Preview dos jogadores -->
-        <div class="mb-6">
-          <h3 class="mb-3 text-sm font-medium text-gray-700">
-            Jogadores no Sorteio
-          </h3>
-          <div class="max-h-48 overflow-y-auto rounded-lg border p-4">
-            <div class="flex flex-wrap gap-2">
-              <PlayerBadge
-                v-for="player in store.enabledPlayers"
-                :key="player.id"
-                :player="player"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Botões de Ação -->
-        <div class="flex flex-col gap-3 md:flex-row">
-          <button
-            @click="$emit('close')"
-            class="flex-1 rounded-lg border border-gray-300 px-6 py-3
-              font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
-          <button
-            @click="handleDraw"
-            :disabled="!isValidNumberOfTeams || !isValidPlayersPerTeam"
-            class="flex-1 rounded-lg bg-blue-600 px-6 py-3 font-semibold
-              text-white transition-colors hover:bg-blue-700
-              disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Sortear Equipes
-          </button>
-        </div>
+        <!-- Restrições de Sorteio -->
+        <PairRulesEditor />
       </div>
 
-      <!-- Modo Manual -->
-      <div v-else>
-        <!-- Info sobre edição -->
-        <div
-          v-if="store.allTeams.length > 0"
-          class="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800"
-        >
-          <div class="flex items-start gap-2">
-            <Icon name="heroicons:pencil-square" class="mt-0.5 h-5 w-5 flex-shrink-0" />
-            <div>
-              <p class="font-semibold">Modo de Edição</p>
-              <p class="text-xs">
-                As equipes atuais foram carregadas. Você pode adicionar/remover
-                jogadores ou criar novas equipes.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Controles de Equipes -->
-        <div class="mb-4 flex items-center justify-between">
-          <p class="text-sm text-gray-600">
-            {{ manualTeams.length }}
-            {{ manualTeams.length === 1 ? 'equipe' : 'equipes' }}
-          </p>
-          <div class="flex gap-2">
-            <button
-              v-if="store.allTeams.length > 0"
-              @click="resetManualTeams"
-              class="rounded-lg border border-gray-300 bg-white px-3 py-1.5
-                text-sm font-semibold text-gray-700 transition-colors
-                hover:bg-gray-50"
-              title="Começar do zero"
-            >
-              <Icon name="heroicons:arrow-path" class="inline h-4 w-4" />
-              Resetar
-            </button>
-            <button
-              @click="addManualTeam"
-              :disabled="manualTeams.length >= 5"
-              class="rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5
-                text-sm font-semibold text-blue-700 transition-colors
-                hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Icon name="heroicons:plus" class="inline h-4 w-4" />
-              Adicionar Equipe
-            </button>
-          </div>
-        </div>
-
-        <!-- Pool de Jogadores Não Alocados -->
-        <div class="mb-4 rounded-lg border-2 border-dashed border-gray-300 p-3">
-          <h3 class="mb-2 text-sm font-medium text-gray-700">
-            Jogadores Disponíveis ({{ unassignedPlayers.length }})
-          </h3>
-          <div
-            v-if="unassignedPlayers.length > 0"
-            class="flex flex-wrap gap-2"
-          >
-            <button
-              v-for="player in unassignedPlayers"
+      <!-- Preview dos jogadores -->
+      <div class="mb-6">
+        <h3 class="mb-3 text-sm font-medium text-gray-700">
+          Jogadores no Sorteio
+        </h3>
+        <div class="max-h-48 overflow-y-auto rounded-lg border p-4">
+          <div class="flex flex-wrap gap-2">
+            <PlayerBadge
+              v-for="player in store.enabledPlayers"
               :key="player.id"
-              @click="openTeamSelectionModal(player)"
-              class="cursor-pointer transition-transform hover:scale-105"
-            >
-              <PlayerBadge :player="player" />
-            </button>
+              :player="player"
+            />
           </div>
-          <p v-else class="text-sm text-gray-500">
-            Todos os jogadores foram alocados
-          </p>
-        </div>
-
-        <!-- Equipes Manuais -->
-        <div class="mb-4 max-h-96 space-y-3 overflow-y-auto">
-          <div
-            v-for="(team, index) in manualTeams"
-            :key="index"
-            class="flex flex-col rounded-lg border-2 p-3"
-            :class="getTeamColorClasses(index)"
-          >
-            <div class="mb-2 flex items-center justify-between">
-              <input
-                v-model="team.name"
-                type="text"
-                class="flex-1 rounded border-none bg-transparent text-base
-                  font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
-                :class="getTeamTextColor(index)"
-                placeholder="Nome da Equipe"
-              />
-              <button
-                @click="removeManualTeam(index)"
-                :disabled="manualTeams.length <= 2"
-                class="ml-2 rounded p-1 text-gray-400 transition-colors
-                  hover:bg-white/50 hover:text-red-600
-                  disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                <Icon name="heroicons:trash" class="h-4 w-4" />
-              </button>
-            </div>
-
-            <div
-              class="mb-2 min-h-20 rounded border-2 border-dashed
-                p-2"
-              :class="'border-gray-300 bg-white/30'"
-            >
-              <div v-if="team.members.length > 0" class="flex flex-wrap gap-2">
-                <div
-                  v-for="member in team.members"
-                  :key="member.id"
-                  class="group relative"
-                >
-                  <PlayerBadge :player="member" />
-                  <button
-                    @click.stop="removePlayerFromTeam(index, member.id)"
-                    class="absolute -right-1 -top-1 flex h-5 w-5 items-center
-                      justify-center rounded-full bg-red-500 text-white opacity-0
-                      shadow-lg transition-opacity group-hover:opacity-100"
-                  >
-                    <Icon name="heroicons:x-mark" class="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-              <p
-                v-else
-                class="text-center text-sm text-gray-500"
-              >
-                Nenhum jogador
-              </p>
-            </div>
-
-            <!-- Info da Equipe -->
-            <div
-              class="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-200 pt-2
-                text-xs text-gray-600"
-            >
-              <span
-                >👥 {{ team.members.length }}
-                {{ team.members.length === 1 ? 'jogador' : 'jogadores' }}</span
-              >
-              <span>{{ genderSummary(team) }}</span>
-              <span :title="positionSummaryTitle">{{
-                positionSummary(team)
-              }}</span>
-              <span
-                >⚖️
-                {{
-                  team.members.reduce((sum, m) => sum + m.weight, 0).toFixed(1)
-                }}</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <!-- Botões de Ação -->
-        <div class="flex flex-col gap-3 md:flex-row">
-          <button
-            @click="$emit('close')"
-            class="flex-1 rounded-lg border border-gray-300 px-6 py-3
-              font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
-          <button
-            @click="confirmManualTeams"
-            :disabled="!canConfirmManualTeams"
-            class="flex-1 rounded-lg bg-green-600 px-6 py-3 font-semibold
-              text-white transition-colors hover:bg-green-700
-              disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            ✓ Confirmar Equipes
-          </button>
         </div>
       </div>
     </div>
 
-    <!-- Modal de Seleção de Equipe -->
-    <div
-      v-if="showTeamSelectionModal && playerToAssign"
-      class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
-      @click.self="closeTeamSelectionModal"
-    >
+    <!-- Modo Manual -->
+    <div v-else>
+      <!-- Info sobre edição -->
       <div
-        class="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"
-        @click.stop
+        v-if="store.allTeams.length > 0"
+        class="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800"
       >
-        <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-lg font-bold text-gray-800">
-            Escolha a Equipe
-          </h3>
+        <div class="flex items-start gap-2">
+          <Icon
+            name="heroicons:pencil-square"
+            class="mt-0.5 h-5 w-5 shrink-0"
+          />
+          <div>
+            <p class="font-semibold">Modo de Edição</p>
+            <p class="text-xs">
+              As equipes atuais foram carregadas. Você pode adicionar/remover
+              jogadores ou criar novas equipes.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controles de Equipes -->
+      <div class="mb-4 flex items-center justify-between">
+        <p class="text-sm text-gray-600">
+          {{ manualTeams.length }}
+          {{ manualTeams.length === 1 ? 'equipe' : 'equipes' }}
+        </p>
+        <div class="flex gap-2">
+          <UButton
+            v-if="store.allTeams.length > 0"
+            color="neutral"
+            variant="outline"
+            size="sm"
+            icon="i-heroicons-arrow-path"
+            label="Resetar"
+            title="Começar do zero"
+            @click="resetManualTeams"
+          />
+          <UButton
+            variant="soft"
+            size="sm"
+            icon="i-heroicons-plus"
+            label="Adicionar Equipe"
+            :disabled="manualTeams.length >= 5"
+            @click="addManualTeam"
+          />
+        </div>
+      </div>
+
+      <!-- Pool de Jogadores Não Alocados -->
+      <div class="mb-4 rounded-lg border-2 border-dashed border-gray-300 p-3">
+        <h3 class="mb-2 text-sm font-medium text-gray-700">
+          Jogadores Disponíveis ({{ unassignedPlayers.length }})
+        </h3>
+        <div v-if="unassignedPlayers.length > 0" class="flex flex-wrap gap-2">
           <button
-            @click="closeTeamSelectionModal"
-            class="flex h-8 w-8 items-center justify-center rounded-full
-              text-gray-400 transition-colors hover:bg-gray-100
-              hover:text-gray-600"
+            v-for="player in unassignedPlayers"
+            :key="player.id"
+            @click="openTeamSelectionModal(player)"
+            class="cursor-pointer transition-transform hover:scale-105"
           >
-            <Icon name="heroicons:x-mark" class="h-5 w-5" />
+            <PlayerBadge :player="player" />
           </button>
         </div>
+        <p v-else class="text-sm text-gray-500">
+          Todos os jogadores foram alocados
+        </p>
+      </div>
 
-        <div class="mb-4 rounded-lg bg-blue-50 p-3">
+      <!-- Equipes Manuais -->
+      <div class="mb-4 space-y-3">
+        <div
+          v-for="(team, index) in manualTeams"
+          :key="index"
+          class="flex flex-col rounded-lg border-2 p-3"
+          :class="teamPalette(index).card"
+        >
+          <div class="mb-2 flex items-center justify-between">
+            <input
+              v-model="team.name"
+              type="text"
+              class="flex-1 rounded border-none bg-transparent text-base
+                font-bold focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+              :class="teamPalette(index).title"
+              placeholder="Nome da Equipe"
+            />
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              icon="i-heroicons-trash"
+              class="ml-2 hover:text-error"
+              aria-label="Remover equipe"
+              :disabled="manualTeams.length <= 2"
+              @click="removeManualTeam(index)"
+            />
+          </div>
+
+          <div
+            class="mb-2 min-h-20 rounded border-2 border-dashed p-2"
+            :class="'border-gray-300 bg-white/30'"
+          >
+            <div v-if="team.members.length > 0" class="flex flex-wrap gap-2">
+              <div
+                v-for="member in team.members"
+                :key="member.id"
+                class="group inline-flex items-center gap-0.5"
+              >
+                <PlayerBadge :player="member" />
+                <UButton
+                  color="error"
+                  variant="ghost"
+                  size="sm"
+                  icon="i-heroicons-x-circle-solid"
+                  class="rounded-full p-0.5 transition-opacity md:opacity-0
+                    md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                  :aria-label="`Tirar ${member.name} da equipe`"
+                  @click.stop="removePlayerFromTeam(index, member.id)"
+                />
+              </div>
+            </div>
+            <p v-else class="text-center text-sm text-gray-500">
+              Nenhum jogador
+            </p>
+          </div>
+
+          <!-- Info da Equipe -->
+          <TeamSummaryLine :team="team" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Seleção de equipe para um jogador (modo manual) -->
+    <UModal
+      :open="showTeamSelectionModal && !!playerToAssign"
+      title="Escolha a Equipe"
+      @update:open="(open: boolean) => !open && closeTeamSelectionModal()"
+    >
+      <template #body>
+        <div v-if="playerToAssign" class="mb-4 rounded-lg bg-blue-50 p-3">
           <PlayerBadge :player="playerToAssign" layout="horizontal" />
         </div>
 
@@ -653,33 +268,97 @@
           <button
             v-for="(team, index) in manualTeams"
             :key="index"
-            @click="assignPlayerToTeamFromModal(index)"
             class="flex w-full items-center justify-between rounded-lg border-2
               p-3 transition-colors hover:bg-gray-50"
-            :class="getTeamColorClasses(index)"
+            :class="teamPalette(index).card"
+            @click="assignPlayerToTeamFromModal(index)"
           >
-            <div>
-              <p class="font-semibold" :class="getTeamTextColor(index)">
+            <div class="text-left">
+              <p class="font-semibold" :class="teamPalette(index).title">
                 {{ team.name }}
               </p>
               <p class="text-xs text-gray-600">
                 {{ team.members.length }}
                 {{ team.members.length === 1 ? 'jogador' : 'jogadores' }} ·
-                Peso: {{ team.members.reduce((sum, m) => sum + m.weight, 0).toFixed(1) }}
+                Peso: {{ teamWeight(team) }}
               </p>
             </div>
-            <Icon name="heroicons:arrow-right" class="h-5 w-5 text-gray-400" />
+            <UIcon
+              name="i-heroicons-arrow-right"
+              class="size-5 text-gray-400"
+            />
           </button>
         </div>
+      </template>
+    </UModal>
+    <template #footer>
+      <!-- Preview: sortear de novo / confirmar / voltar -->
+      <div v-if="showPreview" class="grid w-full grid-cols-2 gap-2">
+        <UButton
+          class="justify-center"
+          color="warning"
+          variant="soft"
+          size="lg"
+          icon="i-heroicons-arrow-path"
+          label="Sortear Novamente"
+          @click="redrawTeams"
+        />
+        <UButton
+          class="justify-center"
+          color="success"
+          size="lg"
+          icon="i-heroicons-check"
+          label="Confirmar"
+          @click="confirmTeams"
+        />
+        <UButton
+          class="col-span-2 justify-center"
+          color="neutral"
+          variant="outline"
+          icon="i-heroicons-arrow-left"
+          label="Voltar"
+          @click="backToConfig"
+        />
       </div>
-    </div>
-  </div>
+
+      <div v-else class="grid w-full grid-cols-2 gap-2">
+        <UButton
+          class="justify-center"
+          color="neutral"
+          variant="outline"
+          size="lg"
+          label="Cancelar"
+          @click="sheet?.close()"
+        />
+        <UButton
+          v-if="creationMode === 'auto'"
+          class="justify-center"
+          size="lg"
+          label="Sortear Equipes"
+          :disabled="
+            store.enabledPlayers.length === 0 ||
+            !isValidNumberOfTeams ||
+            !isValidPlayersPerTeam
+          "
+          @click="handleDraw"
+        />
+        <UButton
+          v-else
+          class="justify-center"
+          color="success"
+          size="lg"
+          icon="i-heroicons-check"
+          label="Confirmar"
+          :disabled="!canConfirmManualTeams"
+          @click="confirmManualTeams"
+        />
+      </div>
+    </template>
+  </AppSheet>
 </template>
 
 <script setup lang="ts">
 import type { Team, Player } from '~/stores/scoreboard'
-import { PAIR_RULE_LABELS, type PairRuleType } from '~/utils/pairRules'
-import { POSITIONS, POSITION_LABELS } from '~/utils/playerProfile'
 
 const emit = defineEmits<{
   close: []
@@ -688,9 +367,36 @@ const emit = defineEmits<{
 
 const store = useScoreboardStore()
 const { askConfirm } = usePrompt()
+const notify = useNotify()
+const sheet = useTemplateRef('sheet')
 
 // Modo de criação: 'auto' (sorteio) ou 'manual'
 const creationMode = ref<'auto' | 'manual'>('auto')
+
+const MODE_ITEMS = [
+  { label: 'Sorteio', icon: 'i-heroicons-sparkles', value: 'auto' },
+  { label: 'Manual', icon: 'i-heroicons-hand-raised', value: 'manual' },
+]
+
+const DRAW_TYPE_ITEMS = [
+  {
+    value: 'balanced',
+    label: 'Balanceado',
+    description:
+      'Espalha cabeças de chave; equilibra posições, habilidade e gênero (nessa ordem)',
+  },
+  {
+    value: 'random',
+    label: 'Aleatório',
+    description:
+      'Ignora habilidade; espalha cabeças de chave e equilibra posições e gênero',
+  },
+]
+
+const selectMode = (mode: string | number) => {
+  if (mode === 'manual') switchToManualMode()
+  else creationMode.value = 'auto'
+}
 
 // Estados do modo automático
 const MIN_TEAMS = 2
@@ -702,11 +408,12 @@ const drawType = ref<'balanced' | 'random'>('balanced')
 const previewTeams = ref<Team[] | null>(null)
 const previewBench = ref<Player[]>([])
 /** Vazio = todos jogam (tamanhos diferem em no máximo 1). */
-const playersPerTeam = ref<number | ''>('')
+const playersPerTeam = ref<number>()
 const showPreview = ref(false)
-const constraintPlayerAId = ref('')
-const constraintPlayerBId = ref('')
-const constraintType = ref<PairRuleType>('cannot')
+const sheetTitle = computed(() => {
+  if (showPreview.value) return 'Equipes Sorteadas'
+  return creationMode.value === 'auto' ? 'Sortear Equipes' : 'Montar Equipes'
+})
 
 // Estados do modo manual
 const manualTeams = ref<Team[]>([])
@@ -729,9 +436,7 @@ const plural = (count: number, singular: string, pluralForm: string) =>
   count === 1 ? singular : pluralForm
 
 /** Tamanho fixo informado, ou `undefined` quando todos jogam. */
-const fixedTeamSize = computed(() =>
-  playersPerTeam.value === '' ? undefined : playersPerTeam.value,
-)
+const fixedTeamSize = computed(() => playersPerTeam.value)
 
 const maxPlayersPerTeam = computed(() =>
   isValidNumberOfTeams.value
@@ -773,52 +478,6 @@ const teamSizeLabel = computed(() => {
   return `${largeCount} ${plural(largeCount, 'equipe', 'equipes')} de ${smallSize + 1} e ${smallCount} de ${smallSize} jogadores`
 })
 
-const playersById = computed(() => {
-  return new Map(store.players.map((player) => [player.id, player]))
-})
-
-const availableConstraintPlayerB = computed(() => {
-  if (!constraintPlayerAId.value) {
-    return store.enabledPlayers
-  }
-
-  return store.enabledPlayers.filter(
-    (player) => player.id !== constraintPlayerAId.value,
-  )
-})
-
-const positionSummaryTitle = POSITIONS.map(
-  (position) => POSITION_LABELS[position].full,
-).join(' · ')
-
-const positionSummary = (team: Team) =>
-  POSITIONS.map(
-    (position) =>
-      `${POSITION_LABELS[position].short} ${
-        team.members.filter((member) => member.positions?.[position]).length
-      }`,
-  ).join(' · ')
-
-const genderSummary = (team: Team) => {
-  const femaleCount = team.members.filter((m) => m.gender === 'F').length
-  const maleCount = team.members.length - femaleCount
-  return `♂ ${maleCount} · ♀ ${femaleCount}`
-}
-
-const pairRulesWithPlayers = computed(() => {
-  return store.pairRules.map((rule) => {
-    const playerA = playersById.value.get(rule.playerAId)
-    const playerB = playersById.value.get(rule.playerBId)
-
-    return {
-      id: rule.id,
-      type: rule.type,
-      playerAName: playerA?.name ?? 'Jogador removido',
-      playerBName: playerB?.name ?? 'Jogador removido',
-    }
-  })
-})
-
 // Jogadores não alocados no modo manual
 const unassignedPlayers = computed(() => {
   const assignedIds = new Set(
@@ -832,13 +491,13 @@ const unassignedPlayers = computed(() => {
 const canConfirmManualTeams = computed(() => {
   // Precisa ter pelo menos 2 equipes
   if (manualTeams.value.length < 2) return false
-  
+
   // Pelo menos 2 equipes devem ter jogadores
   const teamsWithMembers = manualTeams.value.filter(
     (team) => team.members.length > 0,
   )
   if (teamsWithMembers.length < 2) return false
-  
+
   // Todos os jogadores habilitados devem estar alocados
   return unassignedPlayers.value.length === 0
 })
@@ -846,14 +505,14 @@ const canConfirmManualTeams = computed(() => {
 const handleDraw = () => {
   try {
     if (!isValidNumberOfTeams.value) {
-      alert(
+      notify.error(
         `Escolha entre ${MIN_TEAMS} e ${store.enabledPlayers.length} equipes.`,
       )
       return
     }
 
     if (!isValidPlayersPerTeam.value) {
-      alert(teamSizeLabel.value)
+      notify.error(teamSizeLabel.value)
       return
     }
 
@@ -869,43 +528,12 @@ const handleDraw = () => {
     showPreview.value = true
   } catch (error) {
     console.error('Erro ao sortear equipes:', error)
-    const message = error instanceof Error
-      ? error.message
-      : 'Erro ao sortear equipes. Tente novamente.'
-    alert(message)
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro ao sortear equipes. Tente novamente.'
+    notify.error(message)
   }
-}
-
-const handleAddPairRule = () => {
-  if (!constraintPlayerAId.value || !constraintPlayerBId.value) {
-    alert('Selecione os dois jogadores para adicionar a restrição.')
-    return
-  }
-
-  try {
-    const addedRule = store.addPairRule(
-      constraintPlayerAId.value,
-      constraintPlayerBId.value,
-      constraintType.value,
-    )
-
-    if (!addedRule) {
-      alert('Essa restrição já existe.')
-      return
-    }
-
-    constraintPlayerAId.value = ''
-    constraintPlayerBId.value = ''
-  } catch (error) {
-    const message = error instanceof Error
-      ? error.message
-      : 'Não foi possível adicionar a restrição.'
-    alert(message)
-  }
-}
-
-const handleRemovePairRule = (ruleId: string) => {
-  store.removePairRule(ruleId)
 }
 
 const redrawTeams = () => {
@@ -991,7 +619,7 @@ const resetManualTeams = async () => {
 
 const removeManualTeam = (index: number) => {
   if (manualTeams.value.length <= 2) return
-  
+
   // Move os jogadores da equipe removida de volta para o pool
   manualTeams.value.splice(index, 1)
 }
@@ -1014,7 +642,7 @@ const assignPlayerToTeamFromModal = (teamIndex: number) => {
 
   // Adiciona o jogador na equipe
   team.members.push({ ...playerToAssign.value })
-  
+
   // Fecha o modal
   closeTeamSelectionModal()
 }
@@ -1035,7 +663,7 @@ const assignPlayerToTeam = (teamIndex: number) => {
 
   // Adiciona o jogador na equipe
   team.members.push({ ...selectedPlayer.value })
-  
+
   // Limpa a seleção
   selectedPlayer.value = null
 }
@@ -1043,42 +671,20 @@ const assignPlayerToTeam = (teamIndex: number) => {
 const removePlayerFromTeam = (teamIndex: number, playerId: string) => {
   const team = manualTeams.value[teamIndex]
   if (!team) return
-  
+
   team.members = team.members.filter((m) => m.id !== playerId)
-}
-
-const getTeamColorClasses = (index: number) => {
-  const classes = [
-    'border-red-300 bg-red-50',
-    'border-blue-300 bg-blue-50',
-    'border-green-300 bg-green-50',
-    'border-yellow-300 bg-yellow-50',
-    'border-purple-300 bg-purple-50',
-  ]
-  return classes[index % classes.length]
-}
-
-const getTeamTextColor = (index: number) => {
-  const colors = [
-    'text-red-800',
-    'text-blue-800',
-    'text-green-800',
-    'text-yellow-800',
-    'text-purple-800',
-  ]
-  return colors[index % colors.length]
 }
 
 const confirmManualTeams = () => {
   if (!canConfirmManualTeams.value) {
     if (unassignedPlayers.value.length > 0) {
-      alert(
+      notify.error(
         `Ainda há ${unassignedPlayers.value.length} ${
           unassignedPlayers.value.length === 1 ? 'jogador' : 'jogadores'
         } sem equipe. Aloque todos os jogadores antes de confirmar.`,
       )
     } else {
-      alert(
+      notify.error(
         'Certifique-se de que pelo menos 2 equipes tenham jogadores alocados.',
       )
     }
