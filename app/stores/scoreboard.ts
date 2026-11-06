@@ -9,6 +9,11 @@ import {
 } from '~/utils/playerProfile'
 import { attendanceMatchKey, planAttendance } from '~/utils/attendanceList'
 import {
+  findDuplicateGroups,
+  mergeMembers,
+  mergePairRules,
+} from '~/utils/mergeDuplicates'
+import {
   PLAYER_STORAGE_KEYS,
   migrateLegacyStorage,
 } from '~/utils/storageMigration'
@@ -107,6 +112,8 @@ export const useScoreboardStore = defineStore('scoreboard', {
     blueTeam: (state) => state.teams.blue,
     availableTeams: (state) =>
       state.allTeams.filter((t) => t.members.length > 0),
+    /** Jogadores com o mesmo nome (ignorando acentos, emoji etc.). */
+    duplicateGroups: (state) => findDuplicateGroups(state.players),
   },
 
   actions: {
@@ -752,6 +759,59 @@ export const useScoreboardStore = defineStore('scoreboard', {
 
       this.savePlayers()
       return { created, enabled, disabled }
+    },
+
+    /**
+     * Mescla grupos de duplicatas: cada `keepId` fica com os próprios dados
+     * (habilitado se algum do grupo estava), herda as regras de dupla e
+     * substitui os removidos nos times salvos. Regras herdadas que conflitam
+     * com as de quem fica são descartadas e voltam descritas em `droppedRules`.
+     */
+    mergeDuplicatePlayers(
+      merges: Array<{ keepId: string; removeIds: string[] }>,
+    ) {
+      let groups = 0
+      let removed = 0
+      const droppedRules: string[] = []
+
+      merges.forEach(({ keepId, removeIds }) => {
+        const keep = this.players.find((player) => player.id === keepId)
+        const toRemove = this.players.filter(
+          (player) => player.id !== keepId && removeIds.includes(player.id),
+        )
+        if (!keep || toRemove.length === 0) return
+
+        const ids = toRemove.map((player) => player.id)
+        keep.enabled = keep.enabled || toRemove.some((p) => p.enabled)
+        this.players = this.players.filter((player) => !ids.includes(player.id))
+
+        const merged = mergePairRules(this.pairRules, keepId, ids)
+        this.pairRules = merged.rules
+        const nameOf = (id: string) =>
+          this.players.find((player) => player.id === id)?.name ?? id
+        merged.dropped.forEach((rule) => {
+          droppedRules.push(
+            `${nameOf(rule.playerAId)} ${PAIR_RULE_LABELS[rule.type]} ${nameOf(rule.playerBId)}`,
+          )
+        })
+
+        const teams = [this.teams.red, this.teams.blue, ...this.allTeams]
+        teams.forEach((team) => {
+          team.members = mergeMembers(team.members, { ...keep }, ids)
+        })
+
+        groups++
+        removed += ids.length
+      })
+
+      if (groups > 0) {
+        this.savePlayers()
+        this.saveConstraints()
+        this.saveTeams()
+        this.saveAllTeams()
+      }
+
+      return { groups, removed, droppedRules }
     },
 
     // Teams
