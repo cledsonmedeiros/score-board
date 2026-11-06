@@ -4,24 +4,50 @@
  * Funções puras; quem aplica o resultado é a store.
  */
 
-/** Marcas de direção e BOM que o WhatsApp costuma inserir ao copiar texto. */
-const INVISIBLE_CHARS = new RegExp(
-  '[\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069\\ufeff]',
-  'g',
-)
-
 /**
  * Linha numerada: "1. Ana", "1) Ana", "02 - Ana", "4.Ana", "5 Ana".
  * Exige separador ou espaço após o número para que "21h vôlei" não conte.
  */
 const NUMBERED_LINE = /^(\d{1,3})(?:\s*[.):\-–—]\s*|\s+)(.*)$/
 
-/** Chave de comparação de nomes: ignora maiúsculas, acentos e espaços extras. */
+/**
+ * Caracteres invisíveis em geral: formatação (zero-width, marcas de direção,
+ * BOM), seletores de variação de emoji e os "espaços" de preenchimento
+ * Hangul que aparecem em nomes de contato do WhatsApp.
+ */
+const HIDDEN_CHARS =
+  /[\p{Cf}\u{FE00}-\u{FE0F}\u{115F}\u{1160}\u{3164}\u{FFA0}]/gu
+
+/** Emoji e demais símbolos gráficos (✅, ⚽, 🏐...). */
+const SYMBOLS = /[\p{Extended_Pictographic}\p{So}\p{Sk}]/gu
+
+/** Anotações como "(pago)" ou "[goleira]" ao lado do nome na lista. */
+const ANNOTATIONS = /\([^)]*\)|\[[^\]]*\]/g
+
+/**
+ * Nome como veio na lista, limpo para exibição e cadastro: sem invisíveis,
+ * emoji, anotações, "~"/"@" iniciais e espaços repetidos.
+ */
+export function cleanAttendanceName(name: string): string {
+  return name
+    .replace(HIDDEN_CHARS, '')
+    .replace(SYMBOLS, ' ')
+    .replace(ANNOTATIONS, ' ')
+    .replace(/^[\s~@]+/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * Chave de comparação de nomes: ignora maiúsculas, acentos, invisíveis,
+ * emoji, pontuação e espaços extras. Só letras e números contam.
+ */
 export function attendanceMatchKey(name: string): string {
   return name
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .replace(/\s+/g, ' ')
+    .replace(HIDDEN_CHARS, '')
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim()
     .toLocaleLowerCase('pt-BR')
 }
@@ -33,7 +59,7 @@ export function attendanceMatchKey(name: string): string {
  */
 export function parseAttendanceList(text: string): string[] {
   const lines = text
-    .replace(INVISIBLE_CHARS, '')
+    .replace(HIDDEN_CHARS, '')
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
@@ -42,8 +68,9 @@ export function parseAttendanceList(text: string): string[] {
     .map((line) => NUMBERED_LINE.exec(line))
     .filter((match): match is RegExpExecArray => match !== null)
 
-  const candidates =
-    numbered.length > 0 ? numbered.map((match) => match[2]!.trim()) : lines
+  const candidates = (
+    numbered.length > 0 ? numbered.map((match) => match[2]!) : lines
+  ).map(cleanAttendanceName)
 
   const seen = new Set<string>()
   return candidates.filter((name) => {
