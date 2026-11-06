@@ -7,7 +7,7 @@ import {
   normalizeSkill,
   type PlayerPositions,
 } from '~/utils/playerProfile'
-import { planAttendance } from '~/utils/attendanceList'
+import { attendanceMatchKey, planAttendance } from '~/utils/attendanceList'
 import {
   PLAYER_STORAGE_KEYS,
   migrateLegacyStorage,
@@ -111,7 +111,7 @@ export const useScoreboardStore = defineStore('scoreboard', {
 
   actions: {
     normalizePlayerName(name: string) {
-      return name.trim().toLocaleLowerCase('pt-BR')
+      return attendanceMatchKey(name)
     },
 
     normalizeGender(gender: unknown): Gender {

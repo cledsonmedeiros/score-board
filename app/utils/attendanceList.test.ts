@@ -95,6 +95,58 @@ describe('attendanceMatchKey', () => {
       attendanceMatchKey('mercia silva'),
     )
   })
+
+  it.each([
+    ['zero-width', `Ana${String.fromCodePoint(0x200b)}`],
+    ['zero-width joiner', `${String.fromCodePoint(0x200d)}Ana`],
+    ['caractere de preenchimento', `Ana${String.fromCodePoint(0x3164)}`],
+    ['espaço não separável', `Ana${String.fromCodePoint(0x00a0)}`],
+    ['emoji', 'Ana ✅'],
+    ['pontuação', 'Ana.'],
+    ['til do WhatsApp', '~ Ana'],
+    ['menção', '@Ana'],
+    ['largura cheia', 'Ａna'],
+  ])('ignora %s', (_, variant) => {
+    expect(attendanceMatchKey(variant)).toBe(attendanceMatchKey('Ana'))
+  })
+
+  it('trata hífen e apóstrofo como separadores', () => {
+    expect(attendanceMatchKey('Ana-Paula')).toBe(
+      attendanceMatchKey('ana paula'),
+    )
+    expect(attendanceMatchKey("D'Ávila")).toBe(attendanceMatchKey('d avila'))
+  })
+
+  it('não junta nomes diferentes', () => {
+    expect(attendanceMatchKey('Ana Paula')).not.toBe(attendanceMatchKey('Ana'))
+    expect(attendanceMatchKey('João (goleiro)')).not.toBe(
+      attendanceMatchKey('João (zagueiro)'),
+    )
+  })
+})
+
+describe('parseAttendanceList · limpeza do nome exibido', () => {
+  it('remove invisíveis, emoji e espaços duplicados do nome', () => {
+    const ZWSP = String.fromCodePoint(0x200b)
+    expect(parseAttendanceList(`1. Ana${ZWSP}  Paula ✅\n2. ~ Bia`)).toEqual([
+      'Ana Paula',
+      'Bia',
+    ])
+  })
+
+  it('remove anotações entre parênteses ou colchetes da lista', () => {
+    expect(parseAttendanceList('1. Ana (pago)\n2. Bia [goleira]')).toEqual([
+      'Ana',
+      'Bia',
+    ])
+  })
+
+  it('descarta repetidos que só diferem por símbolos', () => {
+    expect(parseAttendanceList('1. Ana\n2. Ana ✅\n3. @ana\n4. Bia')).toEqual([
+      'Ana',
+      'Bia',
+    ])
+  })
 })
 
 describe('planAttendance', () => {
