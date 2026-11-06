@@ -60,6 +60,16 @@
           :label="`Sortear Equipes (${store.enabledPlayers.length} jogadores)`"
           @click="showDrawModal = true"
         />
+
+        <UButton
+          v-if="store.duplicateGroups.length > 0"
+          block
+          color="warning"
+          variant="soft"
+          icon="i-heroicons-document-duplicate"
+          :label="`Mesclar duplicatas (${store.duplicateGroups.length})`"
+          @click="showMergeModal = true"
+        />
       </div>
     </header>
 
@@ -78,6 +88,11 @@
       @drawn="handleTeamsDrawn"
     />
 
+    <LazyDuplicateMergeModal
+      v-if="showMergeModal"
+      @close="showMergeModal = false"
+    />
+
     <LazyPlayerTransferModal
       v-if="showTransferModal"
       @close="showTransferModal = false"
@@ -91,6 +106,7 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 const store = useScoreboardStore()
 const showDrawModal = ref(false)
 const showTransferModal = ref(false)
+const showMergeModal = ref(false)
 const { askConfirm } = usePrompt()
 
 const secondaryActions: DropdownMenuItem[] = [
